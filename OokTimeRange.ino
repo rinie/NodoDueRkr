@@ -582,10 +582,6 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 	if (Ook.iTime <= 0) { // first signal/no repetition yet
 		//PrintEventCode(AnalyzeRawSignal(0));
 		//PrintTerm();
-#ifdef CLOCK // RKR make optional to save space
-		ClockRead();
-		PrintDateTime();
-#endif
 		PrintTerm();
 		Serial.print("* ");
 		// inter message time

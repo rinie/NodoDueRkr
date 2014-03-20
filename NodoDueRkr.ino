@@ -12,7 +12,7 @@
  */
 
  /****************************************************************************************************************************\
- * Arduino project "Nodo Due" Â© Copyright 2010 Paul Tonkes
+ * Arduino project "Nodo Due" © Copyright 2010 Paul Tonkes
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,9 +58,6 @@
 prog_char PROGMEM Text_01[] = "NodoDueRkr based on Nodo Due (c)2011 P.K.Tonkes.";
 prog_char PROGMEM Text_02[] = "License: GNU General Public License.";
 prog_char PROGMEM Text_03[] = "Line=";
-#ifdef CLOCK // RKR make optional to save space
-prog_char PROGMEM Text_04[] = "SunMonTueWedThuFriSat";
-#endif
 prog_char PROGMEM Text_06[] = "Unknown command: ";
 prog_char PROGMEM Text_07[] = "RawSignal=";
 prog_char PROGMEM Text_08[] = "Queue=Out, ";
@@ -137,9 +134,6 @@ PROGMEM const char *CommandText_tabel[]={
 #define VALUE_SOURCE_EVENTLIST 8
 #define VALUE_SOURCE_SYSTEM 9
 #define VALUE_SOURCE_TIMER 10
-#ifdef USERVAR // RKR make optional to save space
-#define VALUE_SOURCE_VARIABLE 11
-#endif
 #define VALUE_SOURCE_CLOCK 12
 #define VALUE_TRACE 13
 #define VALUE_TAG 14
@@ -160,18 +154,6 @@ PROGMEM const char *CommandText_tabel[]={
 #define VALUE_RES6 29
 #define VALUE_RES3 30
 #define CMD_ANALYSE_SETTINGS 31
-#ifdef USERVAR // RKR make optional to save space
-#define CMD_BREAK_ON_VAR_EQU 32
-#define CMD_BREAK_ON_VAR_LESS 33
-#define CMD_BREAK_ON_VAR_MORE 34
-#define CMD_BREAK_ON_VAR_NEQU 35
-#endif
-#ifdef CLOCK // RKR make optional to save space
-#define CMD_CLOCK_DATE 36
-#define CMD_CLOCK_YEAR 37
-#define CMD_CLOCK_TIME 38
-#define CMD_CLOCK_DOW 39
-#endif
 #define CMD_DELAY 40
 #define CMD_DIVERT 41
 #define CMD_EVENTLIST_ERASE 42
@@ -195,263 +177,13 @@ PROGMEM const char *CommandText_tabel[]={
 #define CMD_DISPLAY 60
 #define CMD_UNIT 61
 #define CMD_WAITBUSY 62
-#ifdef USERVAR // RKR make optional to save space
-#define CMD_VARIABLE_DEC 63
-#define CMD_VARIABLE_INC 64
-#define CMD_VARIABLE_SET 65
-#define CMD_VARIABLE_VARIABLE 66
-#endif
-#ifdef defined(USERVAR) && defined(WIRED) // RKR make optional to save space
-#define CMD_VARIABLE_WIRED_ANALOG 67
-#endif
-#define CMD_WAITFREERF 68
-#ifdef WIRED
-#define CMD_WIRED_ANALOG 69
-#define CMD_WIRED_OUT 70
-#define CMD_WIRED_PULLUP 71
-#define CMD_WIRED_SMITTTRIGGER 72
-#define CMD_WIRED_THRESHOLD 73
-#endif
-#define CMD_SEND_USEREVENT 74
-#define CMD_COPYSIGNAL 75
-#define CMD_COMMAND_WILDCARD 76
-#define CMD_SENDBUSY 77
-#ifdef USERVAR // RKR make optional to save space
-#define CMD_SEND_VAR_USEREVENT 78
-#endif
-#ifdef WIRED
-#define CMD_WIRED_RANGE 79
-#endif
-#define CMD_COMMAND_RES4 80
-#define CMD_BOOT_EVENT 81
-#ifdef CLOCK // RKR make optional to save space
-#define CMD_CLOCK_EVENT_DAYLIGHT 82
-#define CMD_CLOCK_EVENT_ALL 83
-#define CMD_CLOCK_EVENT_SUN 84
-#define CMD_CLOCK_EVENT_MON 85
-#define CMD_CLOCK_EVENT_TUE 86
-#define CMD_CLOCK_EVENT_WED 87
-#define CMD_CLOCK_EVENT_THU 88
-#define CMD_CLOCK_EVENT_FRI 89
-#define CMD_CLOCK_EVENT_SAT 90
-#endif
-#define CMD_RES_91 91
-#define CMD_KAKU 92
-#define CMD_KAKU_NEW 93
-#define CMD_TIMER_EVENT 94
-#ifdef WIRED
-#define CMD_WIRED_IN_EVENT 95
-#endif
-#ifdef USERVAR // RKR make optional to save space
-#define CMD_VARIABLE_EVENT 96
-#endif
+
 #define CMD_BUSY 97
 #define CMD_res 98
 #define CMD_ERROR 99
 #define CMD_USER_EVENT 100// deze moet altijd op 100 blijven anders opnieuw leren aan universele afstandsbediening!
 #define CMD_DLS_EVENT 101
 
-prog_char PROGMEM Cmd_0[]="Off";
-prog_char PROGMEM Cmd_1[]="Command";
-prog_char PROGMEM Cmd_2[]="Parameter";
-prog_char PROGMEM Cmd_3[]="IR";
-prog_char PROGMEM Cmd_4[]="IR&RF";
-prog_char PROGMEM Cmd_5[]="RF";
-prog_char PROGMEM Cmd_6[]="Serial";
-#ifdef WIRED
-prog_char PROGMEM Cmd_7[]="Wired";
-#else
-prog_char PROGMEM Cmd_7[]="";
-#endif
-prog_char PROGMEM Cmd_8[]="EventList";
-prog_char PROGMEM Cmd_9[]="System";
-prog_char PROGMEM Cmd_10[]="Timers";
-#ifdef USERVAR // RKR make optional to save space
-prog_char PROGMEM Cmd_11[]="Variables";
-#else
-prog_char PROGMEM Cmd_11[]="";
-#endif
-#ifdef CLOCK // RKR make optional to save space
-prog_char PROGMEM Cmd_12[]="Clock";
-#else
-prog_char PROGMEM Cmd_12[]="";
-#endif
-prog_char PROGMEM Cmd_13[]="Trace";
-prog_char PROGMEM Cmd_14[]="Tag";
-prog_char PROGMEM Cmd_15[]="Timestamp";
-prog_char PROGMEM Cmd_16[]="Direction";
-prog_char PROGMEM Cmd_17[]="Input";
-prog_char PROGMEM Cmd_18[]="Output";
-prog_char PROGMEM Cmd_19[]="Internal";
-prog_char PROGMEM Cmd_20[]="Busy";
-prog_char PROGMEM Cmd_21[]="Source";
-prog_char PROGMEM Cmd_22[]="RF2IR";
-prog_char PROGMEM Cmd_23[]="IR2RF";
-prog_char PROGMEM Cmd_24[]="All";
-prog_char PROGMEM Cmd_25[]="Output_RAW";
-prog_char PROGMEM Cmd_26[]="Nesting";
-prog_char PROGMEM Cmd_27[]="Queue";
-prog_char PROGMEM Cmd_28[]="On";
-prog_char PROGMEM Cmd_29[]=""; // reserve
-prog_char PROGMEM Cmd_30[]=""; // reserve
-prog_char PROGMEM Cmd_31[]="ReceiveSettings";
-#ifdef USERVAR // RKR make optional to save space
-prog_char PROGMEM Cmd_32[]="BreakOnVarEqu";
-prog_char PROGMEM Cmd_33[]="BreakOnVarLess";
-prog_char PROGMEM Cmd_34[]="BreakOnVarMore";
-prog_char PROGMEM Cmd_35[]="BreakOnVarNEqu";
-#else
-prog_char PROGMEM Cmd_32[]="";
-prog_char PROGMEM Cmd_33[]="";
-prog_char PROGMEM Cmd_34[]="";
-prog_char PROGMEM Cmd_35[]="";
-#endif
-#ifdef CLOCK // RKR make optional to save space
-prog_char PROGMEM Cmd_36[]="ClockSetDate";
-prog_char PROGMEM Cmd_37[]="ClockSetYear";
-prog_char PROGMEM Cmd_38[]="ClockSetTime";
-prog_char PROGMEM Cmd_39[]="ClockSetDOW";
-#else
-prog_char PROGMEM Cmd_36[]="";
-prog_char PROGMEM Cmd_37[]="";
-prog_char PROGMEM Cmd_38[]="";
-prog_char PROGMEM Cmd_39[]="";
-#endif
-prog_char PROGMEM Cmd_40[]="Delay";
-prog_char PROGMEM Cmd_41[]="Divert";
-prog_char PROGMEM Cmd_42[]="EventlistErase";
-prog_char PROGMEM Cmd_43[]="EventlistShow";
-prog_char PROGMEM Cmd_44[]="EventlistWrite";
-prog_char PROGMEM Cmd_45[]="TransmitSettings";
-prog_char PROGMEM Cmd_46[]="RawsignalGet";
-prog_char PROGMEM Cmd_47[]="RawsignalPut";
-prog_char PROGMEM Cmd_48[]="Reset";
-prog_char PROGMEM Cmd_49[]="SendKAKU";
-prog_char PROGMEM Cmd_50[]="SendNewKAKU";
-prog_char PROGMEM Cmd_51[]="SendSignal";
-prog_char PROGMEM Cmd_52[]="Simulate";
-prog_char PROGMEM Cmd_53[]="SimulateDay";
-prog_char PROGMEM Cmd_54[]="Sound";
-prog_char PROGMEM Cmd_55[]="Status";
-prog_char PROGMEM Cmd_56[]="";
-prog_char PROGMEM Cmd_57[]="TimerRandom";
-prog_char PROGMEM Cmd_58[]="TimerSetSec";
-prog_char PROGMEM Cmd_59[]="TimerSetMin";
-prog_char PROGMEM Cmd_60[]="Display";
-prog_char PROGMEM Cmd_61[]="Unit";
-prog_char PROGMEM Cmd_62[]="WaitBusy";
-#ifdef USERVAR // RKR make optional to save space
-prog_char PROGMEM Cmd_63[]="VariableDec";
-prog_char PROGMEM Cmd_64[]="VariableInc";
-prog_char PROGMEM Cmd_65[]="VariableSet";
-prog_char PROGMEM Cmd_66[]="VariableVariable";
-#else
-prog_char PROGMEM Cmd_63[]="";
-prog_char PROGMEM Cmd_64[]="";
-prog_char PROGMEM Cmd_65[]="";
-prog_char PROGMEM Cmd_66[]="";
-#endif
-#if defined(USERVAR) && defined(WIRED) // RKR make optional to save space
-prog_char PROGMEM Cmd_67[]="VariableWiredAnalog";
-#else
-prog_char PROGMEM Cmd_67[]="";
-#endif
-prog_char PROGMEM Cmd_68[]="WaitFreeRF";
-#ifdef WIRED
-prog_char PROGMEM Cmd_69[]="WiredAnalog";
-prog_char PROGMEM Cmd_70[]="WiredOut";
-prog_char PROGMEM Cmd_71[]="WiredPullup";
-prog_char PROGMEM Cmd_72[]="WiredSmittTrigger";
-prog_char PROGMEM Cmd_73[]="WiredThreshold";
-#else
-prog_char PROGMEM Cmd_69[]="";
-prog_char PROGMEM Cmd_70[]="";
-prog_char PROGMEM Cmd_71[]="";
-prog_char PROGMEM Cmd_72[]="";
-prog_char PROGMEM Cmd_73[]="";
-#endif
-prog_char PROGMEM Cmd_74[]="SendUserEvent";
-prog_char PROGMEM Cmd_75[]="RawSignalCopy";
-prog_char PROGMEM Cmd_76[]="WildCard";
-prog_char PROGMEM Cmd_77[]="SendBusy";
-#ifdef USERVAR // RKR make optional to save space
-prog_char PROGMEM Cmd_78[]="SendVarUserEvent";
-#else
-prog_char PROGMEM Cmd_78[]="";
-#endif
-#ifdef WIRED
-prog_char PROGMEM Cmd_79[]="WiredRange";
-#else
-prog_char PROGMEM Cmd_79[]="";
-#endif
-prog_char PROGMEM Cmd_80[]=""; // reserve
-prog_char PROGMEM Cmd_81[]="Boot";
-#ifdef CLOCK // RKR make optional to save space
-prog_char PROGMEM Cmd_82[]="ClockDaylight";
-prog_char PROGMEM Cmd_83[]="ClockAll";
-prog_char PROGMEM Cmd_84[]="ClockSun";
-prog_char PROGMEM Cmd_85[]="ClockMon";
-prog_char PROGMEM Cmd_86[]="ClockTue";
-prog_char PROGMEM Cmd_87[]="ClockWed";
-prog_char PROGMEM Cmd_88[]="ClockThu";
-prog_char PROGMEM Cmd_89[]="ClockFri";
-prog_char PROGMEM Cmd_90[]="ClockSat";
-#else
-prog_char PROGMEM Cmd_82[]="";
-prog_char PROGMEM Cmd_83[]="";
-prog_char PROGMEM Cmd_84[]="";
-prog_char PROGMEM Cmd_85[]="";
-prog_char PROGMEM Cmd_86[]="";
-prog_char PROGMEM Cmd_87[]="";
-prog_char PROGMEM Cmd_88[]="";
-prog_char PROGMEM Cmd_89[]="";
-prog_char PROGMEM Cmd_90[]="";
-#endif
-prog_char PROGMEM Cmd_91[]=""; // reserve
-prog_char PROGMEM Cmd_92[]="KAKU";
-prog_char PROGMEM Cmd_93[]="NewKAKU";
-prog_char PROGMEM Cmd_94[]="Timer";
-#ifdef WIRED
-prog_char PROGMEM Cmd_95[]="WiredIn";
-#else
-prog_char PROGMEM Cmd_95[]="";
-#endif
-#ifdef USERVAR // RKR make optional to save space
-prog_char PROGMEM Cmd_96[]="Variable";
-#else
-prog_char PROGMEM Cmd_96[]="";
-#endif
-prog_char PROGMEM Cmd_97[]="Busy";
-prog_char PROGMEM Cmd_98[]=""; // reserve
-prog_char PROGMEM Cmd_99[]="Error"; // deze moet altijd op  blijven
-prog_char PROGMEM Cmd_100[]="UserEvent"; // deze moet altijd op 100 blijven anders opnieuw leren aan universele afstandsbediening!
-prog_char PROGMEM Cmd_101[]="DaylightSaving";
-
-// tabel die refereert aan de commando strings
-PROGMEM const char *CommandText_tabel[]={
-  Cmd_0 ,Cmd_1 ,Cmd_2 ,Cmd_3 ,Cmd_4 ,Cmd_5 ,Cmd_6 ,Cmd_7 ,Cmd_8 ,Cmd_9 ,
-  Cmd_10,Cmd_11,Cmd_12,Cmd_13,Cmd_14,Cmd_15,Cmd_16,Cmd_17,Cmd_18,Cmd_19,
-  Cmd_20,Cmd_21,Cmd_22,Cmd_23,Cmd_24,Cmd_25,Cmd_26,Cmd_27,Cmd_28,Cmd_29,
-  Cmd_30,Cmd_31,Cmd_32,Cmd_33,Cmd_34,Cmd_35,Cmd_36,Cmd_37,Cmd_38,Cmd_39,
-  Cmd_40,Cmd_41,Cmd_42,Cmd_43,Cmd_44,Cmd_45,Cmd_46,Cmd_47,Cmd_48,Cmd_49,
-  Cmd_50,Cmd_51,Cmd_52,Cmd_53,Cmd_54,Cmd_55,Cmd_56,Cmd_57,Cmd_58,Cmd_59,
-  Cmd_60,Cmd_61,Cmd_62,Cmd_63,Cmd_64,Cmd_65,Cmd_66,Cmd_67,Cmd_68,Cmd_69,
-  Cmd_70,Cmd_71,Cmd_72,Cmd_73,Cmd_74,Cmd_75,Cmd_76,Cmd_77,Cmd_78,Cmd_79,
-  Cmd_80,Cmd_81,Cmd_82,Cmd_83,Cmd_84,Cmd_85,Cmd_86,Cmd_87,Cmd_88,Cmd_89,
-  Cmd_90,Cmd_91,Cmd_92,Cmd_93,Cmd_94,Cmd_95,Cmd_96,Cmd_97,Cmd_98,Cmd_99,
-  Cmd_100,Cmd_101};
-
-PROGMEM prog_uint16_t Sunrise[]={
-  528,525,516,503,487,467,446,424,401,378,355,333,313,295,279,268,261,259,263,271,283,297,312,329,
-  345,367,377,394,411,428,446,464,481,498,512,522,528,527};
-
-PROGMEM prog_uint16_t Sunset[]={
-  999,1010,1026,1044,1062,1081,1099,1117,1135,1152,1169,1186,1203,1219,1235,1248,1258,1263,1264,1259,
-  1249,1235,1218,1198,1177,1154,1131,1107,1084,1062,1041,1023,1008,996,990,989,993,1004};
-
-// omschakeling zomertijd / wintertijd voor komende 10 jaar. Ã©Ã©n int bevat de omschakeldata in maart en oktober.
-PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,3127};
-#define DLSBase 2010 // jaar van eerste element uit de array
 #endif
 
 // Declaratie aansluitingen I/O-pennen op de Arduino
@@ -484,10 +216,10 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define NODO_TYPE_COMMAND            2
 
 #ifndef AVR_LIRC
-#define BAUD                     57600 // Baudrate voor seriÃ«le communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
+#define BAUD                     57600 // Baudrate voor seriële communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
 #else
 #ifdef ANALYSIR
-#define BAUD                     2000000 // Baudrate voor seriÃ«le communicatie.
+#define BAUD                     2000000 // Baudrate voor seriële communicatie.
 #else
 #define BAUD                     38400 // LIRC
 #endif
@@ -512,10 +244,10 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #define DISPLAY_RESET               DISPLAY_UNIT + DISPLAY_SOURCE + DISPLAY_DIRECTION + DISPLAY_TAG
 #define ENABLE_SOUND				false	// RKR default for EnableSound
 // settings voor verzenden en ontvangen van IR/RF
-#define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen Ã©Ã©n reeks signalen beÃ«indigd is
-#define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt Ã©Ã©n RF signaal als beÃ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
-#define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt Ã©Ã©n IR signaal als beÃ«indigd beschouwd.
-#define TX_REPEATS                 5 // aantal herhalingen van een code binnen Ã©Ã©n RF of IR reeks
+#define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen één reeks signalen beëindigd is
+#define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt één RF signaal als beëindigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
+#define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt één IR signaal als beëindigd beschouwd.
+#define TX_REPEATS                 5 // aantal herhalingen van een code binnen één RF of IR reeks
 #define MIN_PULSE_LENGTH         75 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd. RKR was 100 try 75
 
 #ifdef ANALYSIR
@@ -523,19 +255,13 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
 #else
 #define MIN_RAW_PULSES            16 // =8 bits. Minimaal aantal ontvangen bits*2 alvorens cpu tijd wordt besteed aan decodering, etc. Zet zo hoog mogelijk om CPU-tijd te sparen en minder 'onzin' te ontvangen.
 #endif
-#define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar Ã©Ã©n dezelfde poort na binnenkomst van een signaal
+#define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar één dezelfde poort na binnenkomst van een signaal
 //****************************************************************************************************************************************
-struct Settings
+struct Settings
   {
   int     Version;
-#ifdef WIRED // RKR make optional to save space
-  byte    WiredInputThreshold[4], WiredInputSmittTrigger[4], WiredInputPullUp[4],WiredInputRange[4];
-#endif
   byte    AnalyseSharpness;
   int     AnalyseTimeOut;
-#ifdef USERVAR // RKR make optional to save space
-  byte    UserVar[USER_VARIABLES_MAX];
-#endif
   byte    Unit;
   byte    Display;
   byte    TransmitPort;
@@ -544,19 +270,8 @@ PROGMEM prog_uint16_t DLSDate[]={2831,2730,2528,3127,3026,2925,2730,2629,2528,31
   byte    WaitFreeRF_Delay;
   boolean SendBusy;
   boolean WaitBusy;
-#ifdef CLOCK
-  boolean DaylightSaving;
-  int     DaylightSavingSet;
-#endif
   boolean EnableSound; // RKR kill sound
   }S;
-
-
-// Timers voor de gebruiker
-#ifdef USERTIMER // RKR make optional to save space
-#define TIMER_MAX              15      // aantal beschikbare timers voor de user, gerekend vanaf 0 t/m 14
-ulong UserTimer[TIMER_MAX];
-#endif
 
 // timers voor verwerking op intervals
 #define Loop_INTERVAL_1          250  // tijdsinterval in ms. voor achtergrondtaken.
@@ -568,7 +283,7 @@ ulong RawStartSignalTime=millis(); // RKR measure time between signals
 ulong RawStartSignalTimeLast= 0; // RKR measure time between signals for filtered signals
 uint RawSignal[RAW_BUFFER_SIZE+4 + RAW_BUFFER_TIMERANGE_SIZE];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
 
-// definiÃ«er een kleine queue voor events die voorbij komen tijdens een delay
+// definiëer een kleine queue voor events die voorbij komen tijdens een delay
 #define EVENT_QUEUE_MAX 15
 ulong QueueEvent[EVENT_QUEUE_MAX];
 byte QueuePort[EVENT_QUEUE_MAX];
@@ -576,32 +291,15 @@ byte QueuePos;
 
 // Overige globals
 boolean Simulate=false;
-#ifdef RAWSIGNAL_TOGGLE
+// RAWSIGNAL_TOGGLE
 boolean RawsignalGet=true;
-#else
-boolean RawsignalGet=false;
-#endif
-#ifdef WIRED // RKR make optional to save space
-boolean WiredInputStatus[4],WiredOutputStatus[4];   // Wired variabelen
-#endif
-int BusyNodo;                                       // in deze variabele de status van het event 'Busy' van de betreffende units 1 t/m 15. bit-1 = unit-1
-#ifdef USERVAR // RKR make optional to save space
-byte UserVarPrevious[USER_VARIABLES_MAX];
-#endif
-byte DaylightPrevious;                              // t.b.v. voorkomen herhaald genereren van events binnen de lopende minuut waar dit event zich voordoet
-#ifdef WIRED // RKR make optional to save space
-byte WiredCounter=0, VariableCounter;
-#endif
-byte EventlistDepth=0;                              // teller die bijhoudt hoe vaak er binnen een macro weer een macro wordt uitgevoerd. Voorkomt tevens vastlopers a.g.v. loops die door een gebruiker zijn gemaakt met macro's
-byte Hold=false;
+
 ulong Content=0L,ContentPrevious;
 ulong Checksum=0L;
 ulong SupressRepeatTimer;
 ulong HoldTimer;
 ulong EventTimeCodePrevious;                // t.b.v. voorkomen herhaald ontvangen van dezelfde code binnen ingestelde tijd
-void(*Reset)(void)=0;                               //reset functie op adres 0
 uint8_t RFbit,RFport,IRbit,IRport;
-struct RealTimeClock {byte Hour,Minutes,Seconds,Date,Month,Day,Daylight; int Year,DaylightSaving;}Time;
 
 void setup()
   {
@@ -625,11 +323,8 @@ void setup()
   IRbit=digitalPinToBitMask(IR_ReceiveDataPin);
   IRport=digitalPinToPort(IR_ReceiveDataPin);
 
-#ifdef CLOCK // RKR make optional to save space
-  Wire.begin();        // zet I2C communicatie gereed voor uitlezen van de realtime clock.
-#endif
 	LoadSettingsFromEeprom();
-  Serial.begin(BAUD);  // Initialiseer de seriÃ«le poort
+  Serial.begin(BAUD);  // Initialiseer de seriële poort
   IR38Khz_set();       // Initialiseet de 38Khz draaggolf voor de IR-zender.
 #ifdef WIRED // RKR make optional to save space
   // initialiseer de Wired in- en uitgangen
@@ -638,12 +333,6 @@ void setup()
     pinMode(WiredDigitalOutputPin_1+x,OUTPUT); // definieer Arduino pin's voor Wired-Out
     digitalWrite(14+WiredAnalogInputPin_1+x,S.WiredInputPullUp[x]?HIGH:LOW);// Zet de pull-up weerstand van 20K voor analoge ingangen. Analog-0 is gekoppeld aan Digital-14
     }
-#endif
-  //Zorg ervoor dat er niet direct na een boot een CMD_CLOCK_DAYLIGHT event optreedt
-#ifdef CLOCK // RKR make optional to save space
-  ClockRead();
-  SetDaylight();
-  DaylightPrevious=Time.Daylight;
 #endif
 #ifdef WIRED // RKR make optional to save space
   // Zet statussen WIRED_IN op hoog, anders wordt direct wij het opstarten vier maal een event gegenereerd omdat de pull-up weerstand analoge de waarden op FF zet
@@ -667,50 +356,19 @@ void loop()
   // als er geen signalen binnenkomen duurt deze hoofdloop +/- 35uSec. snel genoeg om geen signalen te missen.
   while(true)
     {
-#if 0
-    if(Hold)
-      {
-      digitalWrite(MonitorLedPin,(millis()>>7)&0x01);
-      // als in de hold-modus met reden het Delay commando EN de tijd is om, dan geneste aanroop loop() verlaten.
-      if(Hold==CMD_DELAY && HoldTimer<millis())
-        {
-        Hold=false;
-        return;
-        }
-
-      // als in de hold-modus met reden Busy commando EN de er zijn geen Nodo's meer met status Busy, dan geneste aanroop loop() verlaten.
-      if(Hold==CMD_BUSY && (!BusyNodo || HoldTimer<millis()))
-        {
-        Hold=false;
-        return;
-        }
-      }
-    else
-      digitalWrite(MonitorLedPin,LOW);           // LED weer uit
-#endif
-
-    // SERIAL: *************** kijk of er data klaar staat op de seriÃ«le poort **********************
+    // SERIAL: *************** kijk of er data klaar staat op de seriële poort **********************
     do
       {
 #if 1
       if(Serial.available()>0)
         {
 			byte      SerialByte=Serial.read();
-#if 0
-        if(Content=Receive_Serial())
-          {
-          Nodo_2_RawSignal(Content);// bouw een RawSignal op zodat deze later eventueel kan worden verzonden met SendSignal
-          ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_SERIAL,0,0);      // verwerk binnengekomen event.
-          }
-#endif
         StaySharpTimer=millis()+SHARP_TIME;
 //        SerialHold(false);
         }
       }while(millis()<StaySharpTimer);
 #endif
-#if 1
 	if (!RawsignalGet) {
-#endif
 		// IR: *************** kijk of er data staat op IR en genereer een event als er een code ontvangen is **********************
 		do
 		  {
@@ -718,9 +376,8 @@ void loop()
 			{
 			if(FetchSignal(IR_ReceiveDataPin,LOW,S.AnalyseTimeOut, 0))// Als het een duidelijk IR signaal was
 			  {
-	#ifdef RAWSIGNAL_MULTI
+				// RAWSIGNAL_MULTI
 				RawSignal[RawSignal[0] + 1] = 0;  // next count 0
-	#endif
 			  Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			  if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 				{
@@ -736,7 +393,6 @@ void loop()
 			  }
 			}
 		  }while(StaySharpTimer>millis());
-#if 1
 	}
 	else { // RKR RawsignalGet measure repetitions
 		int RawSignalStart = 0;
@@ -773,7 +429,7 @@ void loop()
 			}
 		}
 	}
-#endif
+
 	if (!RawsignalGet) {
 		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
@@ -782,9 +438,8 @@ void loop()
 			{
 			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, 0))// Als het een duidelijk RF signaal was
 			  {
-	#ifdef RAWSIGNAL_MULTI
+				// RAWSIGNAL_MULTI
 				RawSignal[RawSignal[0] + 1] = 0; // next count 0
-	#endif
 			  Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			  if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 				{
@@ -835,93 +490,19 @@ void loop()
 			}
 		}
 	}
+#if 0
     // 2: niet tijdkritische processen die periodiek uitgevoerd moeten worden
     if(LoopIntervalTimer_2<millis()) // lange interval
       {
       LoopIntervalTimer_2=millis()+Loop_INTERVAL_2; // reset de timer
-#ifdef CLOCK // RKR make optional to save space
-      // CLOCK: **************** Lees periodiek de realtime klok uit en check op events  ***********************
-      Content=ClockRead(); // Lees de Real Time Clock waarden in de struct Time
-      if(CheckEventlist(Content) && EventTimeCodePrevious!=Content)
-        {
-        EventTimeCodePrevious=Content;
-        ProcessEvent(Content,VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_CLOCK,0,0);      // verwerk binnengekomen event.
-        }
-      else
-        Content=0L;
-
-      // DAYLIGHT: **************** Check zonsopkomst & zonsondergang  ***********************
-      SetDaylight();
-      if(Time.Daylight!=DaylightPrevious)// er heeft een zonsondergang of zonsopkomst event voorgedaan
-        {
-        Content=command2event(CMD_CLOCK_EVENT_DAYLIGHT,Time.Daylight,0L);
-        DaylightPrevious=Time.Daylight;
-        ProcessEvent(Content,VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_CLOCK,0,0);      // verwerk binnengekomen event.
-        }
-#endif
       }// lange interval
 
     // 1: niet tijdkritische processen die periodiek uitgevoerd moeten worden
     if(LoopIntervalTimer_1<millis())// korte interval
       {
       LoopIntervalTimer_1=millis()+Loop_INTERVAL_1; // reset de timer
-
-#ifdef USERTIMER // RKR make optional to save space
-      // TIMER: **************** Genereer event als Ã©Ã©n van de Timers voor de gebruiker afgelopen is ***********************
-      for(x=0;x<TIMER_MAX;x++)
-        {
-        if(UserTimer[x]!=0L)// als de timer actief is
-          {
-          if(UserTimer[x]<millis()) // als de timer is afgelopen.
-            {
-            UserTimer[x]=0;// zet de timer op inactief.
-            Content=command2event(CMD_TIMER_EVENT,x+1,0);
-            ProcessEvent(Content,VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_TIMER,0,0);      // verwerk binnengekomen event.
-            }
-          }
-        }
-#endif
-#ifdef USERVAR // RKR make optional to save space
-      // VARIABLE: *************** Behandel gewijzigde variabelen als en binnengekomen event ******************************
-      for(x=0;x<USER_VARIABLES_MAX;x++)
-        {
-        if(S.UserVar[x]!=UserVarPrevious[x]) // de eerste gewijzigde variabele
-          {
-          UserVarPrevious[x]=S.UserVar[x];
-          Content=command2event(CMD_VARIABLE_EVENT,x+1,S.UserVar[x]);
-          ProcessEvent(Content,VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_VARIABLE,0,0);      // verwerk binnengekomen event.
-          }
-        }
-#endif
-#ifdef WIRED // RKR make optional to save space
-      // WIRED: *************** kijk of statussen gewijzigd zijn op WIRED **********************
-      if(WiredCounter<3)
-        WiredCounter++;
-      else
-        WiredCounter=0;
-      // als de huidige waarde groter dan threshold EN de vorige keer was dat nog niet zo DAN verstuur code
-      z=false; // vlag om te kijken of er een wijziging is die verzonden moet worden.
-      y=WiredAnalog(WiredCounter);
-
-      if(y>S.WiredInputThreshold[WiredCounter]+S.WiredInputSmittTrigger[WiredCounter] && !WiredInputStatus[WiredCounter])
-        {
-        WiredInputStatus[WiredCounter]=true;
-        z=true;
-        }
-
-      if(y<S.WiredInputThreshold[WiredCounter]-S.WiredInputSmittTrigger[WiredCounter] && WiredInputStatus[WiredCounter])
-        {
-        WiredInputStatus[WiredCounter]=false;
-        z=true;
-        }
-
-      if(z)// er is een verandering van status op de ingang.
-        {
-        Content=command2event(CMD_WIRED_IN_EVENT,WiredCounter+1,WiredInputStatus[WiredCounter]?VALUE_ON:VALUE_OFF);
-        ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_WIRED,0,0);      // verwerk binnengekomen event.
-        }
-#endif
       }// korte interval
+#endif
   digitalWrite(MonitorLedPin,LOW);
     }// // while
   }

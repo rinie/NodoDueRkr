@@ -31,7 +31,7 @@ void SaveSettings(void)
  /*********************************************************************************************\
  * Laad de settings uit het EEPROM geheugen.
  \*********************************************************************************************/
-boolean LoadSettings()
+boolean LoadSettings(void)
   {
   char ByteToSave,*pointerToByteToRead=(char*)&S;    //pointer verwijst nu naar startadres van de struct.
   for(int x=0; x<sizeof(struct Settings);x++)
@@ -41,6 +41,7 @@ boolean LoadSettings()
     }
   }
 
+void(*Reset)(void)=0;                               //reset functie op adres 0
 
  /*********************************************************************************************\
  * Alle settings van de Nodo weer op default.
@@ -48,10 +49,6 @@ boolean LoadSettings()
 void ResetFactory(void)
   {
   S.EnableSound        = ENABLE_SOUND;
-//  Beep(2000,2000);
-#ifdef CLOCK // RKR make optional to save space
-  ClockRead();
-#endif
 
   S.Version            = VERSION;
   S.Unit               = UNIT;
@@ -64,23 +61,7 @@ void ResetFactory(void)
   S.WaitBusy           = false;
   S.WaitFreeRF_Window  = 0;
   S.WaitFreeRF_Delay   = 0;
-#ifdef CLOCK // RKR make optional to save space
-  S.DaylightSaving     = Time.DaylightSaving;
-#endif
-#ifdef WIRED // RKR make optional to save space
-  for(byte x=0;x<4;x++)
-    {
-    S.WiredInputThreshold[x]=0x80;
-    S.WiredInputSmittTrigger[x]=5;
-    S.WiredInputRange[x]=0;
-    S.WiredInputPullUp[x]=true;
-    }
-#endif
-#ifdef USERVAR // RKR make optional to save space
-  // maak alle variabelen leeg
-  for(byte x=0;x<USER_VARIABLES_MAX;x++)
-     S.UserVar[x]=0;
-#endif
+
   SaveSettings();
 //  FactoryEventlist();
   delay(500);// kleine pauze, anders kans fout bij seriële communicatie

@@ -1,6 +1,6 @@
 /**************************************************************************\
 
-    This file is part of Nodo Due, Â© Copyright Paul Tonkes
+    This file is part of Nodo Due, © Copyright Paul Tonkes
 
     Nodo Due is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ void PrintEvent(ulong Content, byte Port, byte Direction)
   byte x,first=0;
 
 #if 0
-  // als ingesteld staat dat seriële input niet weergegeven moet worden en de poort was serieel, dan direct terug
+  // als ingesteld staat dat seri�le input niet weergegeven moet worden en de poort was serieel, dan direct terug
   if(!(S.Display&DISPLAY_SERIAL) && Port==VALUE_SOURCE_SERIAL && Direction==VALUE_DIRECTION_INPUT)
     return;
 #endif
@@ -267,10 +267,6 @@ void PrintEventCode(ulong Code)
       // Par1 als waarde en par2 niet
       case CMD_UNIT:
       case CMD_DIVERT:
-#ifdef CLOCK // RKR make optional to save space
-      case CMD_SIMULATE_DAY:
-      case CMD_CLOCK_DOW:
-#endif
         P1=P_VALUE;
         P2=P_NOT;
         break;
@@ -384,44 +380,6 @@ void PrintEventlistEntry(int entry, byte d)
   PrintEventCode(Action);
   }
 #endif
-#ifdef CLOCK // RKR make optional to save space
- /**********************************************************************************************\
- * Print actuele dag, datum, tijd.
- \*********************************************************************************************/
-void PrintDateTime(void)
-    {
-    // Print de dag. 1=zondag, 0=geen RTC aanwezig
-    for(byte x=0;x<=2;x++)PrintChar(*(Text(Text_04)+(Time.Day-1)*3+x));
-    PrintChar(' ');
-
-    // print year.
-    Serial.print(Time.Year,DEC);
-    PrintChar('-');
-
-    // print maand.
-    if(Time.Month<10)PrintChar('0');
-    PrintValue(Time.Month);
-    PrintChar('-');
-
-    // print datum.
-    if(Time.Date<10)PrintChar('0');
-    PrintValue(Time.Date);
-    PrintChar(' ');
-
-    // print uren.
-    if(Time.Hour<10)PrintChar('0');
-    PrintValue(Time.Hour);
-    PrintChar(':');
-
-    // print minuten.
-    if(Time.Minutes<10)PrintChar('0');
-    PrintValue(Time.Minutes);
-    // RKR print seconds
-    PrintChar(':');
-    if(Time.Seconds<10)PrintChar('0');
-    PrintValue(Time.Seconds);
-    }
-#endif
  /**********************************************************************************************\
  * Print de welkomsttekst van de Nodo.
  \*********************************************************************************************/
@@ -448,25 +406,9 @@ void PrintWelcome(void)
   PrintText(Text_13);
   PrintValue(S.Unit);
   PrintTerm();
-#ifdef CLOCK // RKR make optional to save space
-  if(Time.Day)
-    {
-    PrintText(Text_10);
-    PrintDateTime();
-    if(Time.DaylightSaving)
-      {
-      PrintChar(',');
-      PrintChar(' ');
-      Serial.print(cmd2str(CMD_DLS_EVENT));
-      }
-    PrintTerm();
-    }
-#endif
-#ifdef RAWSIGNAL_TOGGLE
 	//Serial.print("rawsignalget; on");
 	Serial.print("raw");
     PrintTerm();
-#endif
   PrintLine();
   }
 
