@@ -25,36 +25,8 @@ void PrintEvent(ulong Content, byte Port, byte Direction)
   {
   byte x,first=0;
 
-#if 0
-  // als ingesteld staat dat seriële input niet weergegeven moet worden en de poort was serieel, dan direct terug
-  if(!(S.Display&DISPLAY_SERIAL) && Port==VALUE_SOURCE_SERIAL && Direction==VALUE_DIRECTION_INPUT)
-    return;
-#endif
 #ifdef AVR_LIRC // lirc binary ...
 	return;
-#endif
-#if 0
-  // datum en tijd weergeven
-  if(S.Display&DISPLAY_TIMESTAMP && Time.Day) // Time.Day=true want dan is er een RTC aanwezig.
-    {
-    if(S.Display&DISPLAY_TAG)
-      PrintText(Text_10);
-    PrintDateTime();
-    first++;
-    }
-
-  // geef aan of de simulatie mode aan stond
-  if(Simulate)
-    {
-    if(first++)
-      {
-      PrintChar(',');
-      PrintChar(' ');
-      }
-    Serial.print(cmd2str(CMD_SIMULATE));
-    PrintChar('=');
-    Serial.print(cmd2str(VALUE_ON));
-    }
 #endif
   // Geef de richting van de communicatie weer
   if(S.Display&DISPLAY_DIRECTION)
@@ -67,13 +39,6 @@ void PrintEvent(ulong Content, byte Port, byte Direction)
     if(S.Display&DISPLAY_TAG)
       PrintText(Text_11);
     Serial.print(cmd2str(Direction));
-#if 0
-    if(Direction==VALUE_SOURCE_QUEUE)
-      {
-      PrintChar('-');
-      PrintValue(QueuePos+1);
-      }
-#endif
     }
   // geef de source van het event weer
   if(S.Display&DISPLAY_SOURCE && Port)
@@ -87,27 +52,6 @@ void PrintEvent(ulong Content, byte Port, byte Direction)
       PrintText(Text_12);
     Serial.print(cmd2str(Port));
     }
-#if 0
-  // geef unit nummer weer
-  if(S.Display&DISPLAY_UNIT)
-    {
-    // Voor NIET-nodo signalen is het afdrukken van het unitnummer zinloos
-    if(((Content>>28)&0xf)==SIGNAL_TYPE_NODO && ((Content>>16)&0xff)!=CMD_KAKU_NEW && ((Content>>16)&0xff)!=CMD_KAKU)
-      {
-      if(first++)
-        {
-        PrintChar(',');
-        PrintChar(' ');
-        }
-      if(S.Display&DISPLAY_TAG)
-          {
-          Serial.print(cmd2str(CMD_UNIT));
-          PrintChar('=');
-          }
-      PrintValue((Content>>24)&0xf);
-      }
-    }
-#endif
   if(first++)
     {
     PrintChar(',');
@@ -122,26 +66,6 @@ void PrintEvent(ulong Content, byte Port, byte Direction)
   }
 
 
- /*********************************************************************************************\
- * print een lijst met de inhoud van de RawSignal buffer.
- *
- * RKR support multiple repeated signals
- * Print statistics before timing data
- \*********************************************************************************************/
-#if 0
-void PrintRawSignal(void)
-  {
-  PrintText(Text_07);
-  for(byte x=1;x<=RawSignal[0];x++)
-     {
-     if(x>1)PrintChar(',');
-     PrintValue(RawSignal[x]);
-     }
-  PrintTerm();
-  }
-#else
-// moved to OokTimeRange.pde
-#endif
  /*********************************************************************************************\
  * Print een decimaal getal
  * Serial.Print neemt veel progmem in beslag.
@@ -227,57 +151,6 @@ void PrintEventCode(ulong Code)
         P1=P_VALUE;
         P2=P_DIM;
         break;
-#if 0
-      // Par1 als waarde en par2 als tekst
-      case CMD_DELAY:
-#ifdef WIRED
-      case CMD_WIRED_PULLUP:
-      case CMD_WIRED_OUT:
-      case CMD_WIRED_IN_EVENT:
-#endif
-        P1=P_VALUE;
-        P2=P_TEXT;
-        break;
-
-      // Par1 als tekst en par2 als tekst
-      case CMD_COMMAND_WILDCARD:
-        P1=P_TEXT;
-        P2=P_TEXT;
-        break;
-
-      // Par1 als tekst en par2 als getal
-      case CMD_ERROR:
-      case CMD_COPYSIGNAL:
-      case CMD_TRANSMIT_SETTINGS:
-      case CMD_STATUS:
-        P1=P_TEXT;
-        P2=P_VALUE;
-        break;
-
-      // Par1 als tekst en par2 niet
-      case CMD_DLS_EVENT:
-      case CMD_BUSY:
-      case CMD_SENDBUSY:
-      case CMD_WAITBUSY:
-      case CMD_SIMULATE:
-        P1=P_TEXT;
-        P2=P_NOT;
-        break;
-
-      // Par1 als waarde en par2 niet
-      case CMD_UNIT:
-      case CMD_DIVERT:
-        P1=P_VALUE;
-        P2=P_NOT;
-        break;
-
-      // Geen parameters
-      case CMD_SEND_SIGNAL:
-      case CMD_BOOT_EVENT:
-        P1=P_NOT;
-        P2=P_NOT;
-        break;
-#endif
       // Par1 als waarde en par2 als waarde
       default:
         P1=P_VALUE;
@@ -345,41 +218,6 @@ void PrintTerm()
   if(SERIAL_TERMINATOR_2)PrintChar(SERIAL_TERMINATOR_2);
   }
 
-#if 0
- /**********************************************************************************************\
- * Print een regel uit de Eventlist.
- \*********************************************************************************************/
-void PrintEventlistEntry(int entry, byte d)
-  {
-  ulong Event, Action;
-
-  Eventlist_Read(entry,&Event,&Action); // leesregel uit de Eventlist.
-
-  // Geef de entry van de eventlist weer
-  if(S.Display&DISPLAY_TAG)
-    PrintText(Text_03);
-  if(d>1)
-    {
-    PrintValue(d);
-    PrintChar('.');
-    }
-  PrintValue(entry);
-
-  // geef het event weer
-  PrintChar(',');
-  PrintChar(' ');
-  if(S.Display&DISPLAY_TAG)
-    PrintText(Text_14);
-  PrintEventCode(Event);
-
-  // geef het action weer
-  PrintChar(',');
-  PrintChar(' ');
-  if(S.Display&DISPLAY_TAG)
-    PrintText(Text_16);
-  PrintEventCode(Action);
-  }
-#endif
  /**********************************************************************************************\
  * Print de welkomsttekst van de Nodo.
  \*********************************************************************************************/
@@ -407,8 +245,6 @@ void PrintWelcome(void)
   PrintValue(S.Unit);
   PrintTerm();
 	//Serial.print("rawsignalget; on");
-	Serial.print("raw");
-    PrintTerm();
   PrintLine();
   }
 

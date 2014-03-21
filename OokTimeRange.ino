@@ -133,7 +133,6 @@ void PrintNumHex(uint x, char c, uint digits) {
 	Serial.print(x,HEX);
 }
 
-#undef RKRDOUBLE_SHORT
 // todo: add byte/nibble length, stopBit
 void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
 	uint iTimeSplitPulse = (RawSignal[Ook.iTimeRange[ixPulse] + 2] + RawSignal[Ook.iTimeRange[ixPulse] + 3]) / 2; //max Short + min long /2
@@ -176,8 +175,8 @@ void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
 	// old
 	boolean isLongPreamble = isLongPreamblePulse && isLongPreambleSpace;
 	uint iTimeSplit = max(iTimeSplitPulse, iTimeSplitSpace);
-	Serial.print("PreAmble ");
-	Serial.print((iSync > 0) ? "Sync " : ((isLongPreamble) ? "Long ": "Short "));
+	Serial.print(F("PreAmble "));
+	Serial.print((iSync > 0) ? F("Sync ") : ((isLongPreamble) ? F("Long "): F("Short ")));
 	PrintNum(iPreamble, 0, 1);
 	PrintNum(RawSignal[Ook.iTime] - iPreamble - iSync, ' ', 1);
 	prevBit = (isLongPreamble) ? 1: 0; // last long was a 1
@@ -238,7 +237,7 @@ void RkrSyncPulseSpaceAnalyse(boolean fBitWise) {
 	byte byteValLSB= 0;
 	uint x;
 
-	Serial.print("SyncP+S");
+	Serial.print(F("SyncP+S"));
 	PrintNum(iTimeSplit, ' ', 4);
 	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
 	for (x = 3 + Ook.iTime; x <= xEnd-1; x+=2) {
@@ -378,68 +377,25 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
 		PrintNum(Ook.iTime,0, 3);
 		PrintNum(Ook.iTime + RawSignal[Ook.iTime],',', 3);
 		PrintNum(iTimeRange,',', 3);
-		Serial.print("RkrTimeRange Overflow\n");
+		Serial.print(F("RkrTimeRange Overflow\n"));
 		return 0;
 	}
 
-#if 0
-	PrintTerm();
-	Serial.print(iTimeRange,DEC);
-	PrintChar('*');
-	Serial.print(iEnd,DEC);
-	PrintChar('*');
-	Serial.print(What,DEC);
-	PrintTerm();
-#endif
-#if 0
-	return iEnd;
-#endif
-#if 0
-	for (int j=3;j<15 && ((iTimeRange + j) < (RAW_BUFFER_TIMERANGE_SIZE - 2));j++){
-				RawSignal[iTimeRange + j] = RawSignal[iTimeRange + 2];
-	}
-#endif
-#if 0
-	return iEnd;
-#endif
 	while ((i < iEnd) && (iEnd < (RAW_BUFFER_TIMERANGE_SIZE - 2))) {
 		uint Min=RawSignal[iTimeRange + i + 1];
 		uint Max=RawSignal[iTimeRange + i + 0]; //RKR
 
-#ifdef RKRMINMAX_VERBOSE
-		//PrintChar(' ');
-		PrintTerm();
-		Serial.print(i,DEC);
-		PrintChar(':');
-		Serial.print(iEnd,DEC);
-		PrintChar(':');
-		Serial.print(Max,DEC);
-		PrintChar('-');
-		Serial.print(Min,DEC);
-		for(int j = 0; j <= iEnd; j++) {
-			PrintChar('#');
-			Serial.print(RawSignal[iTimeRange+j],DEC);
-		}
-#endif
-#if 1
 		if (i > 16) {
 			return iEnd;
 		}
-#endif
 		if ((Min > Max) && ((Min-Max) > 200)) {
 			uint Median=Max + (((Min-Max) > 400) ? 200 : ((Min-Max)/2)); // currently inverted min/max
 			uint x = 5 + Ook.iTime;
 			uint xEnd = Ook.iTimeEnd;
 
-#ifdef RKRMINMAX_VERBOSE
-			PrintChar('-');
-			Serial.print(Median,DEC);
-#endif
-#if 1
 			if (i > 12 || (xEnd >= RAW_BUFFER_SIZE+2)) {
 				break;
 			}
-#endif
 		//	uint MinCount =0;
 		//	uint MaxCount =0;
 
@@ -451,24 +407,9 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
 			// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
 			// RKR try 3 instead of 5 for starters
 			for (x = 3 + Ook.iTime; x <= xEnd-4; x+=2) {
-#if 1
 				uint value = ((What == 0) ? RawSignal[x] // pulse
 									   : ((What == 1) ? RawSignal[x + 1] //space
 													:  (RawSignal[x] + RawSignal[x + 1]))); // pulse + space
-#else
-				uint value;
-				switch (What) {
-				case 0:
-					value = RawSignal[x]; // pulse
-					break;
-				case 1:
-					value = RawSignal[x+1]; // pulse
-					break;
-				default:
-					value =  RawSignal[x] + RawSignal[x + 1]; // pulse + space
-					break;
-				}
-#endif
 				if (value < Min && value >= Median) {
 					Min=value; // Zoek naar de kortste pulstijd.
 				}
@@ -476,12 +417,6 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
 					Max=value; // Zoek naar de langste pulstijd.
 				}
 			}
-#ifdef RKRMINMAX_VERBOSE
-			PrintChar('!');
-			Serial.print(Max,DEC);
-			PrintChar('-');
-			Serial.print(Min,DEC);
-#endif
 			// at least one new value found: extend with 2
 			if (/* (Min != Max) && */ !((Min==RawSignal[iTimeRange + i + 1]) && (Max==RawSignal[iTimeRange + i + 0]))) {
 				//return iEnd;
@@ -501,22 +436,8 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
 		else {
 			i++;
 		}
-#if 0
-		return iEnd;
-#endif
 	}
-#if 0
-	PrintTerm();
-	Serial.print(iTimeRange,DEC);
-	PrintChar('*');
-	Serial.print(iEnd,DEC);
-#else
-	//PrintChar(' ');
-#ifdef RKRMINMAX_VERBOSE
-	PrintTerm();
-#else
 	PrintChar(' ');
-#endif
 	PrintChar('[');
 	for(uint j = 1; j <= iEnd; j++) {
 		if (j > 1) {
@@ -531,11 +452,6 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
 		Serial.print(RawSignal[iTimeRange+j],DEC);
 	}
 	PrintChar(']');
-#ifdef RKRMINMAX_VERBOSE
-	PrintTerm();
-#endif
-#endif
-
 	return iEnd;
 }
 
@@ -557,18 +473,16 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 	Ook.iTime = iTime;
 	Ook.iTimeEnd = RawSignal[iTime] + iTime;
 	xEnd = Ook.iTimeEnd;
-#ifdef RAW_BUFFER_TIMERANGE_START
 	int iTimeRange = RAW_BUFFER_TIMERANGE_START;
 	RawSignal[iTimeRange] = 0;
 	Ook.iTimeRange[ixPulse] = iTimeRange;
 	Ook.iTimeRange[ixSpace] = iTimeRange;
 	Ook.iTimeRange[ixPulseSpace] = iTimeRange;
-#endif
 	//total time
 	if ((Ook.iTime > RAW_BUFFER_SIZE+2) || (Ook.iTimeEnd > RAW_BUFFER_SIZE+2)) {
 		PrintNum(Ook.iTime,0, 3);
 		PrintNum(Ook.iTimeEnd,',', 3);
-		Serial.print("PrintRawSignal Overflow\n");
+		Serial.print(F("PrintRawSignal Overflow\n"));
 		return;
 	}
 	i = 0;
@@ -583,13 +497,13 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 		//PrintEventCode(AnalyzeRawSignal(0));
 		//PrintTerm();
 		PrintTerm();
-		Serial.print("* ");
+		Serial.print(F("* "));
 		// inter message time
 		PrintNum(RawStartSignalTime - RawStartSignalTimeLast,0, 5);
 		RawStartSignalTimeLast = RawStartSignalTime;
 	}
 	else {
-		Serial.print("! ");
+		Serial.print(F("! "));
 		// intra message
 		PrintNum(RawSignal[xEnd+1],0, 5);
 	}
@@ -642,7 +556,7 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 			}
 			if (iPrintPulseAndSpace & 2) { // mark + space
 				if ((x - (1+Ook.iTime))%2==1) {
-					Serial.print(" [");
+					Serial.print(F(" ["));
 					PrintNum(RawSignal[x] + RawSignal[x-1], 0, 4);
 					PrintChar(']');
 				}
@@ -652,7 +566,7 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 		PrintTerm();
 		if (i == 0) {
 			if (RawSignal[iTimeRange] != 0) {
-				Serial.print("!Rounded ");
+				Serial.print(F("!Rounded "));
 				iPrintPulseAndSpace = RkrTimeRangeAnalyse();
 				RkrTimeRangePsReplaceMedian();
 				if (iPrintPulseAndSpace == 2) {
@@ -672,14 +586,14 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 					PrintChar(':');
 			}
 			if ((x - (1+Ook.iTime))%2==1) {
-				Serial.print(" [");
+				Serial.print(F(" ["));
 				PrintNum(RawSignal[x] + RawSignal[x-1], 0, 4);
 				PrintChar(']');
 			}
 		}
 		PrintTerm();
 	}
-#if 1 // Preamble experiment 2,2,3
+	// Preamble experiment 2,2,3
 	if ((Ook_NrTimeRanges(ixPulseSpace)>=3) && ((Ook_NrTimeRanges(ixPulse)>=2) && (Ook_NrTimeRanges(ixSpace)>=2))) { // preamble/manchester like
 		if (RawSignal[iTime] <= 180) {
 			RkrPreAmbleAnalyse(false, false);
@@ -695,7 +609,6 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 		RkrSyncPulseSpaceAnalyse(false); // seems ok for 44 X10...
 		RkrSyncPulseSpaceAnalyse(true); // seems ok for 44 X10...
 	}
-#endif
 }
 
 
@@ -703,21 +616,15 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 void PrintRawSignalAvrLirc(uint iTime) {
 	uint x, xEnd;
 	uint i;
-#if 0
-	byte iPrintPulseAndSpace = 3;
-#else
-	byte iPrintPulseAndSpace = 1; // just mark, space no mark + space
-#endif
+
 	Ook.iTime = iTime;
 	Ook.iTimeEnd = RawSignal[iTime] + iTime;
 	xEnd = Ook.iTimeEnd;
-#ifdef RAW_BUFFER_TIMERANGE_START
 	int iTimeRange = RAW_BUFFER_TIMERANGE_START;
 	RawSignal[iTimeRange] = 0;
 	Ook.iTimeRange[ixPulse] = iTimeRange;
 	Ook.iTimeRange[ixSpace] = iTimeRange;
 	Ook.iTimeRange[ixPulseSpace] = iTimeRange;
-#endif
 	i = 0;
 	for(int x=1+Ook.iTime;x<=xEnd;x++) {
 		i += RawSignal[x];
@@ -734,21 +641,14 @@ void PrintRawSignalAvrLirc(uint iTime) {
 void PrintRawSignalAnalysIr(uint iTime) {
 	uint x, xEnd;
 	uint i;
-#if 0
-	byte iPrintPulseAndSpace = 3;
-#else
-	byte iPrintPulseAndSpace = 1; // just mark, space no mark + space
-#endif
 	Ook.iTime = iTime;
 	Ook.iTimeEnd = RawSignal[iTime] + iTime;
 	xEnd = Ook.iTimeEnd;
-#ifdef RAW_BUFFER_TIMERANGE_START
 	int iTimeRange = RAW_BUFFER_TIMERANGE_START;
 	RawSignal[iTimeRange] = 0;
 	Ook.iTimeRange[ixPulse] = iTimeRange;
 	Ook.iTimeRange[ixSpace] = iTimeRange;
 	Ook.iTimeRange[ixPulseSpace] = iTimeRange;
-#endif
 	i = 0;
 	for(int x=1+Ook.iTime;x<=xEnd;x++) {
 		i += RawSignal[x];
@@ -768,10 +668,10 @@ void PrintRawSignal(uint iTime) {
 #endif
 #ifdef AVR_LIRC
 #ifdef ANALYSIR
-	Serial.print("!AnalysIr!");
+	Serial.print(F("!AnalysIr!"));
 	PrintRawSignalAnalysIr(iTime);
 #else
-	Serial.print("!Avr!");
+	Serial.print(F("!Avr!"));
 	PrintRawSignalAvrLirc(iTime);
 #ifdef AVR_LIRC_BINARY
 	PrintTerm();
@@ -787,7 +687,7 @@ void PrintRawSignal(uint iTime) {
 
 void PrintRawSignalEnd() {
 #ifndef AVR_LIRC
-	Serial.print("!End");
+	Serial.print(F("!End"));
 	PrintTerm();
 #endif
 }

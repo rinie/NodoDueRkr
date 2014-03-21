@@ -42,8 +42,6 @@ boolean ProcessEvent(unsigned long IncommingEvent, byte Direction, byte Port, un
 		PrintRawSignal(RawSignalStart);
 	}
 	PrintRawSignalEnd();
-	// RAWSIGNAL_TOGGLE // RKR repeat until toggle off
-    RawsignalGet=false;
     return true;
     }
   }

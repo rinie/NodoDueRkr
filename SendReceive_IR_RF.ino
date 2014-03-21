@@ -47,9 +47,6 @@ void WaitFreeRF(int Delay, int Window)
   {
   ulong Timer, TimeOutTimer;
 
-  // WaitFreeRF is zinloos in de simulatie mode
-  if(Simulate)return;
-
   // eerst de 'dode' wachttijd
   Timer=millis()+Delay; // set de timer.
   while(Timer>millis())
@@ -81,7 +78,6 @@ void RawSendRF(void)
   {
   int x;
 
-  if(Simulate)return;
   digitalWrite(RF_ReceivePowerPin,LOW);   // Spanning naar de RF ontvanger uit om interferentie met de zender te voorkomen.
   digitalWrite(RF_TransmitPowerPin,HIGH); // zet de 433Mhz zender aan
   delay(5);// kleine pause om de zender de tijd te geven om stabiel te worden
@@ -113,7 +109,6 @@ void RawSendIR(void)
   {
   int x,y;
 
-  if(Simulate)return;
 
   for(y=0; y<S.TransmitRepeat; y++) // herhaal verzenden IR code
     {

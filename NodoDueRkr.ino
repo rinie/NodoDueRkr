@@ -12,7 +12,7 @@
  */
 
  /****************************************************************************************************************************\
- * Arduino project "Nodo Due" © Copyright 2010 Paul Tonkes
+ * Arduino project "Nodo Due" Â© Copyright 2010 Paul Tonkes
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -117,72 +117,6 @@ PROGMEM const char *CommandText_tabel[]={
 #endif
 
 #else
-#define RANGE_VALUE 30 // alle codes kleiner of gelijk aan deze waarde zijn vaste Nodo waarden.
-#define RANGE_EVENT 81 // alle codes groter of gelijk aan deze waarde zijn een event.
-#define COMMAND_MAX 102 // aantal commando's (dus geteld vanaf 0)
-
-#define VALUE_OFF 0
-#define VALUE_COMMAND 1
-#define VALUE_PARAMETER 2
-#define VALUE_SOURCE_IR 3
-#define VALUE_SOURCE_IR_RF 4
-#define VALUE_SOURCE_RF 5
-#define VALUE_SOURCE_SERIAL 6
-#ifdef WIRED
-#define VALUE_SOURCE_WIRED 7
-#endif
-#define VALUE_SOURCE_EVENTLIST 8
-#define VALUE_SOURCE_SYSTEM 9
-#define VALUE_SOURCE_TIMER 10
-#define VALUE_SOURCE_CLOCK 12
-#define VALUE_TRACE 13
-#define VALUE_TAG 14
-#define VALUE_TIMESTAMP 15
-#define VALUE_DIRECTION 16
-#define VALUE_DIRECTION_INPUT 17
-#define VALUE_DIRECTION_OUTPUT 18
-#define VALUE_DIRECTION_INTERNAL 19
-#define VALUE_BUSY 20
-#define VALUE_SOURCE 21
-#define VALUE_RF_2_IR 22
-#define VALUE_IR_2_RF 23
-#define VALUE_ALL 24 // Deze waarde MOET groter dan 16 zijn.
-#define VALUE_DIRECTION_OUTPUT_RAW 25
-#define VALUE_NESTING 26
-#define VALUE_SOURCE_QUEUE 27
-#define VALUE_ON 28 // Deze waarde MOET groter dan 16 zijn.
-#define VALUE_RES6 29
-#define VALUE_RES3 30
-#define CMD_ANALYSE_SETTINGS 31
-#define CMD_DELAY 40
-#define CMD_DIVERT 41
-#define CMD_EVENTLIST_ERASE 42
-#define CMD_EVENTLIST_SHOW 43
-#define CMD_EVENTLIST_WRITE 44
-#define CMD_TRANSMIT_SETTINGS 45
-#define CMD_RAWSIGNAL_GET 46
-#define CMD_RAWSIGNAL_PUT 47
-#define CMD_RESET 48
-#define CMD_SEND_KAKU 49
-#define CMD_SEND_KAKU_NEW 50
-#define CMD_SEND_SIGNAL 51
-#define CMD_SIMULATE 52
-#define CMD_SIMULATE_DAY 53
-#define CMD_SOUND 54
-#define CMD_STATUS 55
-#define CMD_RES1 56
-#define CMD_TIMER_RANDOM 57
-#define CMD_TIMER_SET_SEC 58
-#define CMD_TIMER_SET_MIN 59
-#define CMD_DISPLAY 60
-#define CMD_UNIT 61
-#define CMD_WAITBUSY 62
-
-#define CMD_BUSY 97
-#define CMD_res 98
-#define CMD_ERROR 99
-#define CMD_USER_EVENT 100// deze moet altijd op 100 blijven anders opnieuw leren aan universele afstandsbediening!
-#define CMD_DLS_EVENT 101
 
 #endif
 
@@ -216,10 +150,10 @@ PROGMEM const char *CommandText_tabel[]={
 #define NODO_TYPE_COMMAND            2
 
 #ifndef AVR_LIRC
-#define BAUD                     57600 // Baudrate voor seriële communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
+#define BAUD                     57600 // Baudrate voor seriÃ«le communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
 #else
 #ifdef ANALYSIR
-#define BAUD                     2000000 // Baudrate voor seriële communicatie.
+#define BAUD                     2000000 // Baudrate voor seriÃ«le communicatie.
 #else
 #define BAUD                     38400 // LIRC
 #endif
@@ -244,10 +178,10 @@ PROGMEM const char *CommandText_tabel[]={
 #define DISPLAY_RESET               DISPLAY_UNIT + DISPLAY_SOURCE + DISPLAY_DIRECTION + DISPLAY_TAG
 #define ENABLE_SOUND				false	// RKR default for EnableSound
 // settings voor verzenden en ontvangen van IR/RF
-#define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen één reeks signalen beëindigd is
-#define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt één RF signaal als beëindigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
-#define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt één IR signaal als beëindigd beschouwd.
-#define TX_REPEATS                 5 // aantal herhalingen van een code binnen één RF of IR reeks
+#define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen Ã©Ã©n reeks signalen beÃ«indigd is
+#define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt Ã©Ã©n RF signaal als beÃ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
+#define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt Ã©Ã©n IR signaal als beÃ«indigd beschouwd.
+#define TX_REPEATS                 5 // aantal herhalingen van een code binnen Ã©Ã©n RF of IR reeks
 #define MIN_PULSE_LENGTH         75 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd. RKR was 100 try 75
 
 #ifdef ANALYSIR
@@ -255,7 +189,7 @@ PROGMEM const char *CommandText_tabel[]={
 #else
 #define MIN_RAW_PULSES            16 // =8 bits. Minimaal aantal ontvangen bits*2 alvorens cpu tijd wordt besteed aan decodering, etc. Zet zo hoog mogelijk om CPU-tijd te sparen en minder 'onzin' te ontvangen.
 #endif
-#define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar één dezelfde poort na binnenkomst van een signaal
+#define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar Ã©Ã©n dezelfde poort na binnenkomst van een signaal
 //****************************************************************************************************************************************
 struct Settings
   {
@@ -283,14 +217,6 @@ ulong RawStartSignalTime=millis(); // RKR measure time between signals
 ulong RawStartSignalTimeLast= 0; // RKR measure time between signals for filtered signals
 uint RawSignal[RAW_BUFFER_SIZE+4 + RAW_BUFFER_TIMERANGE_SIZE];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
 
-// definiëer een kleine queue voor events die voorbij komen tijdens een delay
-#define EVENT_QUEUE_MAX 15
-ulong QueueEvent[EVENT_QUEUE_MAX];
-byte QueuePort[EVENT_QUEUE_MAX];
-byte QueuePos;
-
-// Overige globals
-boolean Simulate=false;
 // RAWSIGNAL_TOGGLE
 boolean RawsignalGet=true;
 
@@ -324,20 +250,8 @@ void setup()
   IRport=digitalPinToPort(IR_ReceiveDataPin);
 
 	LoadSettingsFromEeprom();
-  Serial.begin(BAUD);  // Initialiseer de seriële poort
+  Serial.begin(BAUD);  // Initialiseer de seriÃ«le poort
   IR38Khz_set();       // Initialiseet de 38Khz draaggolf voor de IR-zender.
-#ifdef WIRED // RKR make optional to save space
-  // initialiseer de Wired in- en uitgangen
-  for(x=0;x<=3;x++)
-    {
-    pinMode(WiredDigitalOutputPin_1+x,OUTPUT); // definieer Arduino pin's voor Wired-Out
-    digitalWrite(14+WiredAnalogInputPin_1+x,S.WiredInputPullUp[x]?HIGH:LOW);// Zet de pull-up weerstand van 20K voor analoge ingangen. Analog-0 is gekoppeld aan Digital-14
-    }
-#endif
-#ifdef WIRED // RKR make optional to save space
-  // Zet statussen WIRED_IN op hoog, anders wordt direct wij het opstarten vier maal een event gegenereerd omdat de pull-up weerstand analoge de waarden op FF zet
-  for(x=0;x<4;x++){WiredInputStatus[x]=true;}
-#endif
 #ifndef AVR_LIRC
   PrintWelcome();
 #endif
@@ -356,7 +270,7 @@ void loop()
   // als er geen signalen binnenkomen duurt deze hoofdloop +/- 35uSec. snel genoeg om geen signalen te missen.
   while(true)
     {
-    // SERIAL: *************** kijk of er data klaar staat op de seriële poort **********************
+    // SERIAL: *************** kijk of er data klaar staat op de seriÃ«le poort **********************
     do
       {
 #if 1
