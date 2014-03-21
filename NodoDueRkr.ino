@@ -282,33 +282,7 @@ void loop()
         }
       }while(millis()<StaySharpTimer);
 #endif
-	if (!RawsignalGet) {
-		// IR: *************** kijk of er data staat op IR en genereer een event als er een code ontvangen is **********************
-		do
-		  {
-		  if((*portInputRegister(IRport)&IRbit)==0)// Kijk if er iets op de IR poort binnenkomt. (Pin=LAAG als signaal in de ether).
-			{
-			if(FetchSignal(IR_ReceiveDataPin,LOW,S.AnalyseTimeOut, 0))// Als het een duidelijk IR signaal was
-			  {
-				// RAWSIGNAL_MULTI
-				RawSignal[RawSignal[0] + 1] = 0;  // next count 0
-			  Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
-			  if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
-				{
-				StaySharpTimer=millis()+SHARP_TIME;
-				if(Content==Checksum && (millis()>SupressRepeatTimer || Content!=ContentPrevious))// tweede maal ontvangen als checksum
-				   {
-				   SupressRepeatTimer=millis()+ENDSIGNAL_TIME; // zodat herhalingen niet opnieuw opgepikt worden
-				   ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_IR,0,0); // verwerk binnengekomen event.
-				   ContentPrevious=Content;
-				   }
-				Checksum=Content;
-				}
-			  }
-			}
-		  }while(StaySharpTimer>millis());
-	}
-	else { // RKR RawsignalGet measure repetitions
+	{ // RKR RawsignalGet measure repetitions
 		int RawSignalStart = 0;
 	    //StaySharpTimer=millis()+SHARP_TIME;
 
@@ -344,33 +318,7 @@ void loop()
 		}
 	}
 
-	if (!RawsignalGet) {
-		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
-		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
-		  {
-		  if((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
-			{
-			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, 0))// Als het een duidelijk RF signaal was
-			  {
-				// RAWSIGNAL_MULTI
-				RawSignal[RawSignal[0] + 1] = 0; // next count 0
-			  Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
-			  if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
-				{
-				StaySharpTimer=millis()+SHARP_TIME;
-				if(Content==Checksum && (millis()>SupressRepeatTimer || Content!=ContentPrevious))// tweede maal ontvangen als checksum
-				   {
-				   SupressRepeatTimer=millis()+ENDSIGNAL_TIME; // zodat herhalingen niet opnieuw opgepikt worden
-				   ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_RF,0,0); // verwerk binnengekomen event.
-				   ContentPrevious=Content;
-				   }
-				Checksum=Content;
-				}
-			  }
-			}
-		  }while(millis()<StaySharpTimer);
-	}
-	else { // RKR RawsignalGet measure repetitions
+	{ // RKR RawsignalGet measure repetitions
 		int RawSignalStart = 0;
 
 		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
@@ -417,6 +365,6 @@ void loop()
       LoopIntervalTimer_1=millis()+Loop_INTERVAL_1; // reset de timer
       }// korte interval
 #endif
-  digitalWrite(MonitorLedPin,LOW);
+  	digitalWrite(MonitorLedPin,LOW);
     }// // while
   }

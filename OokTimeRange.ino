@@ -469,7 +469,8 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
 void PrintRawSignalOokTimeRange(uint iTime) {
 	uint x, xEnd;
 	uint i;
-	byte iPrintPulseAndSpace = 3;
+	byte iPrintPulseAndSpace = 0;
+	byte iPrintPulseAndSpaceRounded = 3;
 	Ook.iTime = iTime;
 	Ook.iTimeEnd = RawSignal[iTime] + iTime;
 	xEnd = Ook.iTimeEnd;
@@ -540,36 +541,44 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 //	PrintTerm();
 	for (i=0; i < 2; i++) {
 		//  PrintText(Text_07,false);
-		for(int x=1+Ook.iTime;x<=xEnd;x++) {
-			if ((x - (1+Ook.iTime))%16==0) {
-					PrintTerm();
-					PrintNum(x - (1+Ook.iTime), 0, 4);
-					PrintChar(':');
+		if (iPrintPulseAndSpace != 0) {
+			for(int x=1+Ook.iTime;x<=xEnd;x++) {
+				if ((x - (1+Ook.iTime))%16==0) {
+						PrintTerm();
+						PrintNum(x - (1+Ook.iTime), 0, 4);
+						PrintChar(':');
+						if (iPrintPulseAndSpace & 1) { // mark, space
+							PrintNum(RawSignal[x], 0, 4);
+						}
+				}
+				else {
 					if (iPrintPulseAndSpace & 1) { // mark, space
-						PrintNum(RawSignal[x], 0, 4);
+						PrintNum(RawSignal[x], ',', 4);
 					}
-			}
-			else {
-				if (iPrintPulseAndSpace & 1) { // mark, space
-					PrintNum(RawSignal[x], ',', 4);
 				}
-			}
-			if (iPrintPulseAndSpace & 2) { // mark + space
-				if ((x - (1+Ook.iTime))%2==1) {
-					Serial.print(F(" ["));
-					PrintNum(RawSignal[x] + RawSignal[x-1], 0, 4);
-					PrintChar(']');
+				if (iPrintPulseAndSpace & 2) { // mark + space
+					if ((x - (1+Ook.iTime))%2==1) {
+						Serial.print(F(" ["));
+						PrintNum(RawSignal[x] + RawSignal[x-1], 0, 4);
+						PrintChar(']');
+					}
 				}
-			}
 
+			}
+			PrintTerm();
 		}
-		PrintTerm();
 		if (i == 0) {
 			if (RawSignal[iTimeRange] != 0) {
+				 if (iPrintPulseAndSpace == 0) {
+					 	PrintTerm();
+				 }
 				Serial.print(F("!Rounded "));
-				iPrintPulseAndSpace = RkrTimeRangeAnalyse();
+				iPrintPulseAndSpaceRounded = RkrTimeRangeAnalyse();
 				RkrTimeRangePsReplaceMedian();
-				if (iPrintPulseAndSpace == 2) {
+				if (iPrintPulseAndSpace != 0) {
+					iPrintPulseAndSpace = iPrintPulseAndSpaceRounded;
+				}
+				if (iPrintPulseAndSpace == 2 || iPrintPulseAndSpace == 0) {
 					break;
 				}
 			}
@@ -578,17 +587,19 @@ void PrintRawSignalOokTimeRange(uint iTime) {
 			}
 		}
 	}
-	if (iPrintPulseAndSpace == 2) {
-		for(int x=1+Ook.iTime;x<=xEnd;x++) {
-			if ((x - (1+Ook.iTime))%16==0) {
-					PrintTerm();
-					PrintNum((x - (1+Ook.iTime))/2, 0, 4);
-					PrintChar(':');
-			}
-			if ((x - (1+Ook.iTime))%2==1) {
-				Serial.print(F(" ["));
-				PrintNum(RawSignal[x] + RawSignal[x-1], 0, 4);
-				PrintChar(']');
+	if (iPrintPulseAndSpace == 2 || iPrintPulseAndSpace == 0) {
+		if (iPrintPulseAndSpace == 2) {
+			for(int x=1+Ook.iTime;x<=xEnd;x++) {
+				if ((x - (1+Ook.iTime))%16==0) {
+						PrintTerm();
+						PrintNum((x - (1+Ook.iTime))/2, 0, 4);
+						PrintChar(':');
+				}
+				if ((x - (1+Ook.iTime))%2==1) {
+					Serial.print(F(" ["));
+					PrintNum(RawSignal[x] + RawSignal[x-1], 0, 4);
+					PrintChar(']');
+				}
 			}
 		}
 		PrintTerm();

@@ -28,18 +28,6 @@ void PrintEvent(ulong Content, byte Port, byte Direction)
 #ifdef AVR_LIRC // lirc binary ...
 	return;
 #endif
-  // Geef de richting van de communicatie weer
-  if(S.Display&DISPLAY_DIRECTION)
-    {
-    if(first++)
-      {
-      PrintChar(',');
-      PrintChar(' ');
-      }
-    if(S.Display&DISPLAY_TAG)
-      PrintText(Text_11);
-    Serial.print(cmd2str(Direction));
-    }
   // geef de source van het event weer
   if(S.Display&DISPLAY_SOURCE && Port)
     {
@@ -48,8 +36,6 @@ void PrintEvent(ulong Content, byte Port, byte Direction)
       PrintChar(',');
       PrintChar(' ');
       }
-    if(S.Display&DISPLAY_TAG)
-      PrintText(Text_12);
     Serial.print(cmd2str(Port));
     }
   if(first++)
@@ -58,11 +44,8 @@ void PrintEvent(ulong Content, byte Port, byte Direction)
     PrintChar(' ');
     }
 
-  if(S.Display&DISPLAY_TAG)
-    PrintText(Text_14);
-
   PrintEventCode(Content);
-  PrintTerm();
+  //PrintTerm();
   }
 
 
