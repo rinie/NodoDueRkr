@@ -82,7 +82,7 @@ void RawSendRF(void)
   digitalWrite(RF_TransmitPowerPin,HIGH); // zet de 433Mhz zender aan
   delay(5);// kleine pause om de zender de tijd te geven om stabiel te worden
 
-  for(byte y=0; y<S.TransmitRepeat; y++) // herhaal verzenden RF code
+  for(byte y=0; y<settings.TransmitRepeat; y++) // herhaal verzenden RF code
     {
     x=1;
     while(x<=RawSignal[0])
@@ -110,7 +110,7 @@ void RawSendIR(void)
   int x,y;
 
 
-  for(y=0; y<S.TransmitRepeat; y++) // herhaal verzenden IR code
+  for(y=0; y<settings.TransmitRepeat; y++) // herhaal verzenden IR code
     {
     x=1;
     while(x<=RawSignal[0])

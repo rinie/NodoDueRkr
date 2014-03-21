@@ -109,7 +109,7 @@ void PrintComma(void)
   Serial.print(F(", "));
   }
 
-void PrintNum(uint x, char c, uint digits) {
+void PrintNum(uint x, char c=0, uint digits=4) {
      // Rinie add space for small digits
      if(c) {
      	PrintChar(c);
@@ -648,7 +648,6 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 }
 
 
-#ifdef AVR_LIRC
 void PrintRawSignalAvrLirc(uint iTime) {
 	uint x, xEnd;
 	uint i;
@@ -671,9 +670,7 @@ void PrintRawSignalAvrLirc(uint iTime) {
 	}
 	emit_pulse_data(1+Ook.iTime, xEnd); // use AvrLirc code...
 }
-#endif
 
-#ifdef ANALYSIR
 void PrintRawSignalAnalysIr(uint iTime) {
 	uint x, xEnd;
 	uint i;
@@ -695,26 +692,21 @@ void PrintRawSignalAnalysIr(uint iTime) {
 	}
 	reportPulses(1+Ook.iTime, xEnd); // use AnalysIR code...
 }
-#endif
 
 #if 1
 void PrintRawSignal(uint iTime, boolean fIsRf) {
-#ifndef AVR_LIRC
-	PrintRawSignalOokTimeRange(iTime, fIsRf);
-#endif
-#ifdef AVR_LIRC
-#ifdef ANALYSIR
-	Serial.print(F("!AnalysIr!"));
-	PrintRawSignalOokTimeRange(iTime, fIsRf);
-	PrintRawSignalAnalysIr(iTime);
-#else
-	Serial.print(F("!Avr!"));
-	PrintRawSignalAvrLirc(iTime);
-#ifdef AVR_LIRC_BINARY
-	PrintTerm();
-#endif
-#endif
-#endif
+	if (settings.Mode != omLirc) {
+		PrintRawSignalOokTimeRange(iTime, fIsRf);
+	}
+	if (settings.Mode == omAnaysIR) {
+		Serial.print(F("!AnalysIr!"));
+		PrintRawSignalAnalysIr(iTime);
+	}
+	if (settings.Mode == omLirc) {
+		// Serial.print(F("!Avr!"));
+		PrintRawSignalAvrLirc(iTime);
+		PrintTerm();
+	}
 }
 #else
 void PrintRawSignal(uint iTime, boolean fIsRf) {
@@ -723,10 +715,10 @@ void PrintRawSignal(uint iTime, boolean fIsRf) {
 #endif
 
 void PrintRawSignalEnd() {
-#ifndef AVR_LIRC
-	Serial.print(F("!End"));
-	PrintTermRaw();
-#endif
+	if (settings.Mode !=omLirc) {
+		Serial.print(F("!End"));
+		PrintTermRaw();
+	}
 }
 
 

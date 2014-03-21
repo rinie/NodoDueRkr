@@ -38,7 +38,7 @@
  *                                                     - Hardware en Arduino penbezetting volgens schema Nodo Due Rev.003
  \****************************************************************************************************************************/
 
-#define VERSION        001        // Nodo Version nummer:
+#define VERSION        002        // Nodo Version nummer:
                                   // Major.Minor.Patch
                                   // Major: Grote veranderingen aan concept, besturing, werking.
                                   // Minor: Uitbreiding/aanpassing van commando's, functionaliteit en MMI aanpassingen
@@ -191,9 +191,15 @@ PROGMEM const char *CommandText_tabel[]={
 #endif
 #define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar één dezelfde poort na binnenkomst van een signaal
 //****************************************************************************************************************************************
+typedef enum OUTPUTMODE {
+	omNodoDueRkr, omLirc, omAnaysIR
+} OUTPUTMODE;
+
 struct Settings
   {
   int     Version;
+  byte	Mode;
+  ulong	BaudRate;
   byte    AnalyseSharpness;
   int     AnalyseTimeOut;
   byte    Unit;
@@ -205,7 +211,7 @@ struct Settings
   boolean SendBusy;
   boolean WaitBusy;
   boolean EnableSound; // RKR kill sound
-  }S;
+  }settings;
 
 // timers voor verwerking op intervals
 #define Loop_INTERVAL_1          250  // tijdsinterval in ms. voor achtergrondtaken.
@@ -250,13 +256,11 @@ void setup()
   IRport=digitalPinToPort(IR_ReceiveDataPin);
 
 	LoadSettingsFromEeprom();
-  Serial.begin(BAUD);  // Initialiseer de seriële poort
+  Serial.begin(settings.BaudRate);  // Initialiseer de seriële poort
   IR38Khz_set();       // Initialiseet de 38Khz draaggolf voor de IR-zender.
 #ifndef AVR_LIRC
   PrintWelcome();
 #endif
-//  ProcessEvent(command2event(CMD_BOOT_EVENT,0,0),VALUE_DIRECTION_INTERNAL,VALUE_SOURCE_SYSTEM,0,0);  // Voer het 'Boot' event uit.
-//  SerialHold(false);    // Zend een X-Off zodat de nodo geen seriele tekens ontvangt die nog niet verwerkt kunnen worden
   }
 
 void loop()

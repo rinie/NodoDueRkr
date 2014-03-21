@@ -18,37 +18,6 @@
 \**************************************************************************/
 
 
- /******************************welcome***************************************************************\
- * Print een event volgens formaat:  'EVENT/ACTION: <port>, <type>, <content>
- \*********************************************************************************************/
-void PrintEvent(ulong Content, byte Port, byte Direction)
-  {
-  byte x,first=0;
-
-#ifdef AVR_LIRC // lirc binary ...
-	return;
-#endif
-  // geef de source van het event weer
-  if(S.Display&DISPLAY_SOURCE && Port)
-    {
-    if(first++)
-      {
-      PrintChar(',');
-      PrintChar(' ');
-      }
-    Serial.print(cmd2str(Port));
-    }
-  if(first++)
-    {
-    PrintChar(',');
-    PrintChar(' ');
-    }
-
-  PrintEventCode(Content);
-  //PrintTerm();
-  }
-
-
  /*********************************************************************************************\
  * Print een decimaal getal
  * Serial.Print neemt veel progmem in beslag.
@@ -109,7 +78,7 @@ void PrintEventCode(ulong Code)
   if(Type==SIGNAL_TYPE_NEWKAKU)
     {
     // Aan/Uit zit in bit 5
-    Serial.print(cmd2str(CMD_KAKU_NEW));
+    Serial.print(F("KAKU_NEW"));
     PrintChar(' ');
     PrintValue(Code&0x0FFFFFEF);
     PrintChar(',');
@@ -118,7 +87,7 @@ void PrintEventCode(ulong Code)
 
   else if(Type==SIGNAL_TYPE_NODO || Type==SIGNAL_TYPE_KAKU)
     {
-    Serial.print(cmd2str(Command));
+    Serial.print(F("KAKU"));
     switch(Command)
       {
       // Par1 als KAKU adres [A0..P16] en Par2 als [On,Off]
@@ -225,15 +194,15 @@ void PrintWelcome(void)
   PrintTerm();
 
   PrintText(Text_15);
-  PrintValue(S.Version/100);
+  PrintValue(settings.Version/100);
   PrintChar('.');
-  PrintValue((S.Version%100)/10);
+  PrintValue((settings.Version%100)/10);
   PrintChar('.');
-  PrintValue(S.Version%10);
+  PrintValue(settings.Version%10);
   PrintChar(',');
   PrintChar(' ');
   PrintText(Text_13);
-  PrintValue(S.Unit);
+  PrintValue(settings.Unit);
   PrintTerm();
 	//Serial.print("rawsignalget; on");
   PrintLine();

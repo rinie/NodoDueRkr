@@ -59,7 +59,7 @@ unsigned long SetEventType(unsigned long Event, byte Type)
 unsigned long command2event(int Command, byte Par1, byte Par2)
     {
     return ((unsigned long)SIGNAL_TYPE_NODO)<<28   |
-           ((unsigned long)S.Unit)<<24            |
+           ((unsigned long)settings.Unit)<<24            |
            ((unsigned long)Command)<<16           |
            ((unsigned long)Par1)<<8               |
             (unsigned long)Par2;

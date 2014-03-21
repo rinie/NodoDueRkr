@@ -26,7 +26,6 @@
   * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
   *
  */
-#ifdef AVR_LIRC
 
 /*
  * tx_char - send a serial character
@@ -154,4 +153,3 @@ emit_pulse_data(uint xStart, uint xEnd)
 }
 
 // end avrlirc.c copy
-#endif

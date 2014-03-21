@@ -137,7 +137,7 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 	MinSpaceP = MinSpace;
 	if (MaxPulse - MinPulse < 200) {
 		// RKR Original
-		MinPulse+=(MinPulse*S.AnalyseSharpness)/100;
+		MinPulse+=(MinPulse*settings.AnalyseSharpness)/100;
 	}
 	else {
 		// try half way
@@ -145,7 +145,7 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 	}
 
 	if (MaxSpace - MinSpace < 200) {
-		MinSpace+=(MinSpace*S.AnalyseSharpness)/100;
+		MinSpace+=(MinSpace*settings.AnalyseSharpness)/100;
 	}
 	else {
 		// try half way
@@ -266,8 +266,8 @@ boolean TransmitCode(ulong Event,byte SignalType)
   {
 
   if(SignalType!=SIGNAL_TYPE_UNKNOWN)
-    if((S.WaitFreeRF_Window + S.WaitFreeRF_Delay)>=0)
-        WaitFreeRF(S.WaitFreeRF_Delay*100, S.WaitFreeRF_Window*100); // alleen WaitFreeRF als type bekend is, anders gaat SendSignal niet goed a.g.v. overschrijven buffer
+    if((settings.WaitFreeRF_Window + settings.WaitFreeRF_Delay)>=0)
+        WaitFreeRF(settings.WaitFreeRF_Delay*100, settings.WaitFreeRF_Window*100); // alleen WaitFreeRF als type bekend is, anders gaat SendSignal niet goed a.g.v. overschrijven buffer
 
   switch(SignalType)
     {
@@ -290,15 +290,13 @@ boolean TransmitCode(ulong Event,byte SignalType)
       return false;
     }
 
-  if(S.TransmitPort==VALUE_SOURCE_RF || S.TransmitPort==VALUE_SOURCE_IR_RF)
+  if(settings.TransmitPort==VALUE_SOURCE_RF || settings.TransmitPort==VALUE_SOURCE_IR_RF)
     {
-    PrintEvent(Event,VALUE_SOURCE_RF,VALUE_DIRECTION_OUTPUT);
     RawSendRF();
     }
 
-  if(S.TransmitPort==VALUE_SOURCE_IR || S.TransmitPort==VALUE_SOURCE_IR_RF)
+  if(settings.TransmitPort==VALUE_SOURCE_IR || settings.TransmitPort==VALUE_SOURCE_IR_RF)
     {
-    PrintEvent(Event,VALUE_SOURCE_IR,VALUE_DIRECTION_OUTPUT);
     RawSendIR();
     }
   }

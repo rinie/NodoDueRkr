@@ -20,7 +20,7 @@
  \*********************************************************************************************/
 void SaveSettings(void)
   {
-  char ByteToSave,*pointerToByteToSave=pointerToByteToSave=(char*)&S;    //pointer verwijst nu naar startadres van de struct. Ge-cast naar char omdat EEPROMWrite per byte wegschrijft
+  char ByteToSave,*pointerToByteToSave=pointerToByteToSave=(char*)&settings;    //pointer verwijst nu naar startadres van de struct. Ge-cast naar char omdat EEPROMWrite per byte wegschrijft
   for(int x=0; x<sizeof(struct Settings) ;x++)
     {
     EEPROM.write(x,*pointerToByteToSave);
@@ -33,7 +33,7 @@ void SaveSettings(void)
  \*********************************************************************************************/
 boolean LoadSettings(void)
   {
-  char ByteToSave,*pointerToByteToRead=(char*)&S;    //pointer verwijst nu naar startadres van de struct.
+  char ByteToSave,*pointerToByteToRead=(char*)&settings;    //pointer verwijst nu naar startadres van de struct.
   for(int x=0; x<sizeof(struct Settings);x++)
     {
     *pointerToByteToRead=EEPROM.read(x);
@@ -48,19 +48,21 @@ void(*Reset)(void)=0;                               //reset functie op adres 0
  \*********************************************************************************************/
 void ResetFactory(void)
   {
-  S.EnableSound        = ENABLE_SOUND;
+  settings.EnableSound        = ENABLE_SOUND;
 
-  S.Version            = VERSION;
-  S.Unit               = UNIT;
-  S.Display            = DISPLAY_RESET;
-  S.AnalyseSharpness   = 50;
-  S.AnalyseTimeOut     = SIGNAL_TIMEOUT_IR;
-  S.TransmitPort       = VALUE_SOURCE_IR_RF;
-  S.TransmitRepeat     = TX_REPEATS;
-  S.SendBusy           = false;
-  S.WaitBusy           = false;
-  S.WaitFreeRF_Window  = 0;
-  S.WaitFreeRF_Delay   = 0;
+  settings.Version            = VERSION;
+  settings.Mode	= omNodoDueRkr;
+  settings.BaudRate				= BAUD;
+  settings.Unit               = UNIT;
+  settings.Display            = DISPLAY_RESET;
+  settings.AnalyseSharpness   = 50;
+  settings.AnalyseTimeOut     = SIGNAL_TIMEOUT_IR;
+  settings.TransmitPort       = VALUE_SOURCE_IR_RF;
+  settings.TransmitRepeat     = TX_REPEATS;
+  settings.SendBusy           = false;
+  settings.WaitBusy           = false;
+  settings.WaitFreeRF_Window  = 0;
+  settings.WaitFreeRF_Delay   = 0;
 
   SaveSettings();
 //  FactoryEventlist();
@@ -71,5 +73,5 @@ void ResetFactory(void)
 void LoadSettingsFromEeprom(void) {
   LoadSettings();      // laad alle settings zoals deze in de EEPROM zijn opgeslagen
 
-  if(S.Version!=VERSION)ResetFactory(); // Als versienummer in EEPROM niet correct is, dan een ResetFactory.
+  if(settings.Version!=VERSION)ResetFactory(); // Als versienummer in EEPROM niet correct is, dan een ResetFactory.
 }
