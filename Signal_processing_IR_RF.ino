@@ -187,8 +187,8 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 	while (x<xEnd);
 
 	if (fPrint) { // RKR print Pulse/Space stats
-		PrintTerm();
-		Serial.print(F("RAW P "));
+		PrintTermRaw();
+		Serial.print(F("!RAW P "));
 		PrintNum(RawSignal[RawIndexStart+1], ' ', 4); // start pulse/preamble
 		PrintNum(MinPulseP, ',', 4);
 		PrintNum(MaxPulse, ',', 4);
@@ -197,9 +197,9 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 		PrintComma();
 		PrintValue(CodeP);
 		RkrTimeRange(MinPulseP, MaxPulse, ixPulse); // Pulse
-		PrintTerm();
+		PrintTermRaw();
 
-		Serial.print(F("RAW S "));
+		Serial.print(F("!RAW S "));
 		PrintNum(RawSignal[RawIndexStart+2], ' ', 4); // start space/preamble
 		PrintNum(MinSpaceP, ',', 4);
 		PrintNum(MaxSpace, ',', 4);
@@ -208,9 +208,9 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 		PrintComma();
 		PrintValue(CodeS);
 		RkrTimeRange(MinSpaceP, MaxSpace, ixSpace); // Space
-		PrintTerm();
+		PrintTermRaw();
 
-		Serial.print(F("RAW PS"));
+		Serial.print(F("!RAW PS"));
 		PrintNum(RawSignal[RawIndexStart+1] + RawSignal[RawIndexStart+2], ' ', 4); // start space/preamble
 		PrintNum(MinPulseSpace, ',', 4);
 		PrintNum(MaxPulseSpace, ',', 4);

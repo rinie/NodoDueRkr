@@ -313,7 +313,7 @@ void loop()
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 			{
-			   ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_IR,0,0); // verwerk binnengekomen event.
+			   PrintRawSignals(Content,false); // verwerk binnengekomen event.
 			}
 		}
 	}
@@ -348,7 +348,7 @@ void loop()
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 			{
-			   ProcessEvent(Content,VALUE_DIRECTION_INPUT,VALUE_SOURCE_RF,0,0); // verwerk binnengekomen event.
+			   PrintRawSignals(Content,true); // verwerk binnengekomen event.
 			}
 		}
 	}
@@ -368,3 +368,5 @@ void loop()
   	digitalWrite(MonitorLedPin,LOW);
     }// // while
   }
+
+

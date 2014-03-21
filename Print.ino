@@ -201,6 +201,14 @@ void PrintTerm()
   if(SERIAL_TERMINATOR_2)PrintChar(SERIAL_TERMINATOR_2);
   }
 
+void PrintTermRaw()
+{
+	#if 1 // AnalysIR comment end
+		PrintChar('!');
+	#endif
+	PrintTerm();
+}
+
  /**********************************************************************************************\
  * Print de welkomsttekst van de Nodo.
  \*********************************************************************************************/
