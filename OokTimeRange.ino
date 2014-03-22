@@ -152,9 +152,9 @@ void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
 	//uint	byteValMSB= 0;
 	uint x;
 
-	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+	// 0=countl, 1=startpulse, 2=space after startpulse, 3=1st data pulse
 	// preamble: long until short or short until long...
-	for (x = 5 + Ook.iTime; x <= xEnd-1; x++) {
+	for (x = 1 + Ook.iTime; x <= xEnd-1; x++) {
 		// pulse
 		if (isLongPreamblePulse != (RawSignal[x] > iTimeSplitPulse)) {
 			break;
@@ -179,12 +179,13 @@ void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
 	// old
 	boolean isLongPreamble = isLongPreamblePulse && isLongPreambleSpace;
 	uint iTimeSplit = max(iTimeSplitPulse, iTimeSplitSpace);
-	Serial.print(F("!PreAmble "));
-	Serial.print((iSync > 0) ? F("Sync ") : ((isLongPreamble) ? F("Long "): F("Short ")));
+	Serial.print(F("!PreAmble"));
+	Serial.print((fSkipEven) ? F("Skip ") : ((iSync > 0) ? F("Sync ") : ((isLongPreamble) ? F("Long "): F("Short "))));
 	PrintNum(iPreamble, 0, 1);
 	PrintNum(RawSignal[Ook.iTime] - iPreamble - iSync, ' ', 1);
 	prevBit = (isLongPreamble) ? 1: 0; // last long was a 1
 	isLongPrev = (isLongPreamble) ? false : true; // stop on short that we skipped
+	PrintChar(':');
 
 	// assume rest is manchester encoded
 	for (;x <= xEnd-1; x++) {
@@ -209,8 +210,8 @@ void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
 				iBits = 0;
 				if (!fBitWise) {
 					if (fSkipEven) { // swap nibbles
-						PrintNumHex(((byteVal) & 0x0F), ' ', 1);
-						PrintNumHex(((byteVal >> 4) & 0x0F), ' ', 1);
+						byte bbyteVal = ((byteVal) & 0x0F) & ((byteVal >> 4) & 0x0F);
+						PrintNumHex(bbyteVal, ' ', 2);
 					}
 					else {
 						PrintNumHex(byteVal, ' ', 2);
@@ -243,7 +244,8 @@ void RkrSyncPulseSpaceAnalyse(boolean fBitWise) {
 
 	Serial.print(F("!SyncP+S"));
 	PrintNum(iTimeSplit, ' ', 4);
-	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+	PrintChar(':');
+	// 0=countl, 1=startpulse, 2=space after startpulse, 3=1st data pulse
 	for (x = 3 + Ook.iTime; x <= xEnd-1; x+=2) {
 		boolean isLong = (RawSignal[x] + RawSignal[x + 1]) > iTimeSplit;
 		byteValLSB = (byteValLSB << 1) | ((isLong) ? 0x01 : 0);
@@ -312,7 +314,7 @@ void RkrTimeRangeReplaceMedian(uint Min, uint Max, uint Median, int What) {
 	if (What > 1) {
 		return;
 	}
-	// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+	// 0=countl, 1=startpulse, 2=space after startpulse, 3=1st data pulse
 	for (uint x = 1 + Ook.iTime; x <= xEnd-1; x+=2) {
 		uint value = RawSignal[x + What];
 		if (value >= Min && value <= Max) {
@@ -365,7 +367,7 @@ void RkrTimeRangePsReplaceMedian() {
 
 // called from RawSignal_2_32bit, that is called by PrintRawSignal...
 //int RkrTimeRange(uint iTime, uint iTimeRange, int What) {
-int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
+int RkrTimeRange(uint MinTime, uint MaxTime, byte What) {
 	uint i=1;
 	uint iEnd = 2;
 	uint iTimeRange = (What == 0) ? RAW_BUFFER_TIMERANGE_START : Ook.iTimeRange[What - 1] + RawSignal[Ook.iTimeRange[What - 1]] + 1;
@@ -408,7 +410,7 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
 			// diff > x?
 			// dan replace by median
 			// zoek de kortste tijd (PULSE en SPACE)
-			// 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+			// 0=countl, 1=startpulse, 2=space after startpulse, 3=1st data pulse
 			// RKR try 3 instead of 5 for starters
 			for (x = 3 + Ook.iTime; x <= xEnd-4; x+=2) {
 				uint value = ((What == 0) ? RawSignal[x] // pulse
@@ -460,7 +462,19 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
 }
 
 
+int RkrPrintTimeRangeStats(byte ixPs, uint StartTime, uint MinTime, uint MaxTime, uint count, ulong hash) {
+		PrintTermRaw();
 
+		Serial.print((ixPs == ixPulseSpace) ? F("!RawP+S") : ((ixPs== ixPulse)? F("!RawP  "):F("!RawS  ")));
+		PrintNum(StartTime, ' ', 4); // start space/preamble
+		PrintNum(MinTime, ',', 4);
+		PrintNum(MaxTime, ',', 4);
+		PrintNum(MaxTime-MinTime, ',', 4);
+		PrintNum(count, ',', 4);
+		PrintComma();
+		PrintValue(hash);
+		RkrTimeRange(MinTime, MaxTime, ixPs); // // Pulse + Space
+}
 
 /*
  * Transfer point From Nodo_Due code into OokTimeRangeCode
@@ -473,7 +487,7 @@ int RkrTimeRange(uint MinTime, uint MaxTime, int What) {
 void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 	uint x, xEnd;
 	uint i;
-	byte iPrintPulseAndSpace = 0; // normal 3, now 0 to show only results
+	byte iPrintPulseAndSpace = 3; // normal 3, now 0 to show only results
 	byte iPrintPulseAndSpaceRounded = 3;
 	Ook.iTime = iTime;
 	Ook.iTimeEnd = RawSignal[iTime] + iTime;
@@ -504,7 +518,7 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 		//PrintEventCode(AnalyzeRawSignal(0));
 		//PrintTerm();
 		//PrintTermRaw();
-		Serial.print(fIsRf ? F("!RF ") : F("!IR "));
+		Serial.print(fIsRf ? F("!Rf") : F("!Ir"));
 		Serial.print(F("* "));
 		// inter message time
 		PrintNum(RawStartSignalTime - RawStartSignalTimeLast,0, 5);
@@ -516,7 +530,7 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 			return;
 		}
 #endif
-		Serial.print(fIsRf ? F("!RF ") : F("!IR "));
+		Serial.print(fIsRf ? F("!Rf") : F("!Ir"));
 		if (hash == Ook.lastHash && xEnd-Ook.iTime == Ook.lastLength) {
 			Serial.print(F("+ ")); // last = current, so likely good match!
 		}

@@ -187,38 +187,9 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 	while (x<xEnd);
 
 	if (fPrint) { // RKR print Pulse/Space stats
-		PrintTermRaw();
-		Serial.print(F("!RAW P "));
-		PrintNum(RawSignal[RawIndexStart+1], ' ', 4); // start pulse/preamble
-		PrintNum(MinPulseP, ',', 4);
-		PrintNum(MaxPulse, ',', 4);
-		PrintNum(MaxPulse-MinPulseP, ',', 4);
-		PrintNum(Counter_pulse, ',', 4);
-		PrintComma();
-		PrintValue(CodeP);
-		RkrTimeRange(MinPulseP, MaxPulse, ixPulse); // Pulse
-		PrintTermRaw();
-
-		Serial.print(F("!RAW S "));
-		PrintNum(RawSignal[RawIndexStart+2], ' ', 4); // start space/preamble
-		PrintNum(MinSpaceP, ',', 4);
-		PrintNum(MaxSpace, ',', 4);
-		PrintNum(MaxSpace-MinSpaceP, ',', 4);
-		PrintNum(Counter_space, ',', 4);
-		PrintComma();
-		PrintValue(CodeS);
-		RkrTimeRange(MinSpaceP, MaxSpace, ixSpace); // Space
-		PrintTermRaw();
-
-		Serial.print(F("!RAW PS"));
-		PrintNum(RawSignal[RawIndexStart+1] + RawSignal[RawIndexStart+2], ' ', 4); // start space/preamble
-		PrintNum(MinPulseSpace, ',', 4);
-		PrintNum(MaxPulseSpace, ',', 4);
-		PrintNum(MaxPulseSpace-MinPulseSpace, ',', 4);
-		PrintNum(Counter_pulse + Counter_space, ',', 4);
-		PrintComma();
-		PrintValue(CodeS^CodeP);
-		RkrTimeRange(MinPulseSpace, MaxPulseSpace, ixPulseSpace); // // Pulse + Space
+		RkrPrintTimeRangeStats(ixPulse, RawSignal[RawIndexStart+1], MinPulseP, MaxPulse, Counter_pulse, CodeP);
+		RkrPrintTimeRangeStats(ixSpace, RawSignal[RawIndexStart+2], MinSpaceP, MaxSpace, Counter_space, CodeS);
+		RkrPrintTimeRangeStats(ixPulseSpace, RawSignal[RawIndexStart+1] + RawSignal[RawIndexStart+2], MinPulseSpace, MaxPulseSpace, Counter_pulse + Counter_space, CodeS^CodeP);
 	}
 
 	if(Counter_pulse>=1 && Counter_space<=1) {
