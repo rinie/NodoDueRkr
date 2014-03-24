@@ -32,7 +32,7 @@
 
 
 /*********************************************************************************************\
-* Deze routine berekent de RAW pulsen uit een CMD_KAKU plaatst deze in de buffer RawSignal
+* Deze routine berekent de RAW pulsen uit een CMD_KAKU plaatst deze in de buffer pulseSpaceMicros
 *
 * KAKU
 * Encoding volgens Princeton PT2262 / MOSDESIGN M3EB / Domia Lite spec.
@@ -62,52 +62,52 @@ void KAKU_2_RawSignal(ulong Code)
   Group   = (Code & KAKU_ALLOFF) == KAKU_ALLOFF;
   Code = Home | Unit << 4 | (0x600 | (Command << 11));
 
-  RawSignal[0]=KAKU_CodeLength*4+2;
+  pulseSpaceMicros[0]=KAKU_CodeLength*4+2;
 
   for (i=0; i<KAKU_CodeLength; i++) // loop de 12-bits langs en vertaal naar pulse/space signalen.
     {
-    RawSignal[4*i+1]=KAKU_T;
-    RawSignal[4*i+2]=KAKU_T*3;
+    pulseSpaceMicros[4*i+1]=KAKU_T;
+    pulseSpaceMicros[4*i+2]=KAKU_T*3;
 
     if (Group && i>=4 && i<8)
       {
-      RawSignal[4*i+3]=KAKU_T;
-      RawSignal[4*i+4]=KAKU_T;
+      pulseSpaceMicros[4*i+3]=KAKU_T;
+      pulseSpaceMicros[4*i+4]=KAKU_T;
       } // short 0
     else
       {
       if((Code>>i)&1)// 1
         {
-        RawSignal[4*i+3]=KAKU_T*3;
-        RawSignal[4*i+4]=KAKU_T;
+        pulseSpaceMicros[4*i+3]=KAKU_T*3;
+        pulseSpaceMicros[4*i+4]=KAKU_T;
         }
       else //0
         {
-        RawSignal[4*i+3]=KAKU_T;
-        RawSignal[4*i+4]=KAKU_T*3;
+        pulseSpaceMicros[4*i+3]=KAKU_T;
+        pulseSpaceMicros[4*i+4]=KAKU_T*3;
         }
       }
     }
-  RawSignal[(KAKU_CodeLength*4)+1] = KAKU_T;
-  RawSignal[(KAKU_CodeLength*4)+2] = KAKU_T*32; // pauze tussen de pulsreeksen
+  pulseSpaceMicros[(KAKU_CodeLength*4)+1] = KAKU_T;
+  pulseSpaceMicros[(KAKU_CodeLength*4)+2] = KAKU_T*32; // pauze tussen de pulsreeksen
   }
 
 /*********************************************************************************************\
-* Deze routine berekent de uit een RawSignal een CMD_KAKU
+* Deze routine berekent de uit een pulseSpaceMicros een CMD_KAKU
 * Geeft een false retour als geen geldig KAKU commando uit het signaal te destilleren
 \*********************************************************************************************/
-ulong RawSignal_2_KAKU(uint RawIndexStart) {
+ulong RawSignal_2_KAKU(uint psmIndexStart) {
 	byte Home, Unit, Level, Command=VALUE_OFF;
 	int i;
 	boolean Group=false;
 	ulong bitstream=0;
 
 	// conventionele KAKU bestaat altijd uit 12 data bits plus stop. Ongelijk, dan geen KAKU
-	if (RawSignal[RawIndexStart] != (KAKU_CodeLength*4)+2) {
+	if (pulseSpaceMicros[psmIndexStart] != (KAKU_CodeLength*4)+2) {
 			return 0;
 	}
 	for (i=0; i<KAKU_CodeLength; i++) {
-		uint *Signal= RawSignal+4*i+1 + RawIndexStart;
+		uint *Signal= pulseSpaceMicros+4*i+1 + psmIndexStart;
     	const uint splitTMax = KAKU_T*2;
     	const uint split3TMin = KAKU_T*2;
     	// all signals start with T,3T
@@ -170,13 +170,13 @@ ulong RawSignal_2_KAKU(uint RawIndexStart) {
 #define NewKAKU_8T                  2200        // us, Tijd van de space na de startbit
 
 /*********************************************************************************************\
-* Deze routine berekent de RAW pulsen uit een CMD_NEWKAKU plaatst deze in de buffer RawSignal
+* Deze routine berekent de RAW pulsen uit een CMD_NEWKAKU plaatst deze in de buffer pulseSpaceMicros
 \*********************************************************************************************/
 void NewKAKU_2_RawSignal(ulong CodeNodo)
   {
   ulong bitstream=0L;
   byte Bit, Level, i=1;
-  byte x; /// aantal posities voor pulsen/spaces in RawSignal
+  byte x; /// aantal posities voor pulsen/spaces in pulseSpaceMicros
   byte y;
 
   // bouw het KAKU adres op
@@ -198,24 +198,24 @@ void NewKAKU_2_RawSignal(ulong CodeNodo)
 
   // bitstream bevat nu de KAKU-bits die verzonden moeten worden.
 
-  for(i=3;i<=x;i++)RawSignal[i]=NewKAKU_1T;  // De meeste tijden in signaal zijn T. Vul alle pulstijden met deze waarde. Later worden de 4T waarden op hun plek gezet
+  for(i=3;i<=x;i++)pulseSpaceMicros[i]=NewKAKU_1T;  // De meeste tijden in signaal zijn T. Vul alle pulstijden met deze waarde. Later worden de 4T waarden op hun plek gezet
 
   i=1;
-  RawSignal[i++]=NewKAKU_1T; //pulse van de startbit
-  RawSignal[i++]=NewKAKU_8T; //space na de startbit
+  pulseSpaceMicros[i++]=NewKAKU_1T; //pulse van de startbit
+  pulseSpaceMicros[i++]=NewKAKU_8T; //space na de startbit
 
   y=31; // bit uit de bitstream
   while(i<x)
     {
     if((bitstream>>(y--))&1)
-      RawSignal[i+1]=NewKAKU_4T;     // Bit=1; // T,4T,T,T
+      pulseSpaceMicros[i+1]=NewKAKU_4T;     // Bit=1; // T,4T,T,T
     else
-      RawSignal[i+3]=NewKAKU_4T;     // Bit=0; // T,T,T,4T
+      pulseSpaceMicros[i+3]=NewKAKU_4T;     // Bit=0; // T,T,T,4T
 
     if(x==146)  // als het een dim opdracht betreft
       {
       if(i==111) // Plaats van de Commnado-bit uit KAKU
-        RawSignal[i+3]=NewKAKU_1T;  // moet een T,T,T,T zijn bij een dim commando.
+        pulseSpaceMicros[i+3]=NewKAKU_1T;  // moet een T,T,T,T zijn bij een dim commando.
       if(i==127)  // als alle pulsen van de 32-bits weggeschreven zijn
         {
         bitstream=(ulong)Level; //  nog vier extra dim-bits om te verzenden
@@ -224,35 +224,35 @@ void NewKAKU_2_RawSignal(ulong CodeNodo)
       }
     i+=4;
     }
-  RawSignal[i++]=NewKAKU_1T; //pulse van de stopbit
-  RawSignal[i]=NewKAKU_1T*32; //space van de stopbit tevens pause tussen signalen
-  RawSignal[0]=i; // aantal bits*2 die zich in het opgebouwde RawSignal bevinden
+  pulseSpaceMicros[i++]=NewKAKU_1T; //pulse van de stopbit
+  pulseSpaceMicros[i]=NewKAKU_1T*32; //space van de stopbit tevens pause tussen signalen
+  pulseSpaceMicros[0]=i; // aantal bits*2 die zich in het opgebouwde pulseSpaceMicros bevinden
   }
 
 /*********************************************************************************************\
-* Deze routine berekent de uit een RawSignal een CMD_NEWKAKU
+* Deze routine berekent de uit een pulseSpaceMicros een CMD_NEWKAKU
 * Geeft een false retour als geen geldig KAKU commando uit het signaal te destilleren
 \*********************************************************************************************/
-ulong RawSignal_2_NewKAKU(uint RawIndexStart) {
+ulong RawSignal_2_NewKAKU(uint psmIndexStart) {
 	ulong bitstream=0L;
 	boolean Bit;
 	int Level=0;
-	int iEnd = RawSignal[RawIndexStart] - 2; //-2 omdat de space/pulse van de stopbit geen deel meer van signaal uit maakt.
-	int i=3; // RawSignal[3] is de eerste van een T,xT,T,xT combinatie
+	int iEnd = pulseSpaceMicros[psmIndexStart] - 2; //-2 omdat de space/pulse van de stopbit geen deel meer van signaal uit maakt.
+	int i=3; // pulseSpaceMicros[3] is de eerste van een T,xT,T,xT combinatie
 	// nieuwe KAKU bestaat altijd uit start bit + 32 bits + evt 4 dim bits. Ongelijk, dan geen NewKAKU
-	if (RawSignal[RawIndexStart] != NewKAKU_RawSignalLength && (RawSignal[RawIndexStart] != NewKAKUdim_RawSignalLength)) {
+	if (pulseSpaceMicros[psmIndexStart] != NewKAKU_RawSignalLength && (pulseSpaceMicros[psmIndexStart] != NewKAKUdim_RawSignalLength)) {
 		return 0L;
 	}
 
-  // RawSignal[0] bevat aantal pulsen * 2  => negeren
-  // RawSignal[1] bevat startbit met tijdsduur van 1T => negeren
-  // RawSignal[2] bevat lange space na startbit met tijdsduur van 8T => negeren
+  // pulseSpaceMicros[0] bevat aantal pulsen * 2  => negeren
+  // pulseSpaceMicros[1] bevat startbit met tijdsduur van 1T => negeren
+  // pulseSpaceMicros[2] bevat lange space na startbit met tijdsduur van 8T => negeren
 
 #define NewKakuSplitTMax NewKAKU_mT
 #define NewKakuSplit4TMin NewKAKU_mT
 
   for (i = 3; i<iEnd; i+=4) {
-		uint *Signal= RawSignal+ i + RawIndexStart;
+		uint *Signal= pulseSpaceMicros+ i + psmIndexStart;
 		if (!(Signal[0]<NewKakuSplitTMax  && Signal[2]<NewKakuSplitTMax)) {
 			return 0; // 0 and 2 shoud be T
 		}
@@ -263,7 +263,7 @@ ulong RawSignal_2_NewKAKU(uint RawIndexStart) {
 			Bit=1;
 		}
 		else if(Signal[1] < NewKakuSplitTMax && Signal[3] < NewKakuSplitTMax) {  // T,T,T,T Deze hoort te zitten op i=111 want: 27e NewKAKU bit maal 4 plus 2 posities voor startbit
-			if(RawSignal[RawIndexStart]!=NewKAKUdim_RawSignalLength) { // als de dim-bits er niet zijn
+			if(pulseSpaceMicros[psmIndexStart]!=NewKAKUdim_RawSignalLength) { // als de dim-bits er niet zijn
 				return 0;
 			}
 		}

@@ -19,75 +19,13 @@
  * preamble, data, checksum...
  */
 
-/*
-// Oregon V2 decoder added - Dominique Pierre
-// Oregon V3 decoder revisited - Dominique Pierre
-// New code to decode OOK signals from weather sensors, etc.
-// 2010-04-11 <jcw@equi4.com> http://opensource.org/licenses/mit-license.php
-// $Id: ookDecoder.pde 5331 2010-04-17 10:45:17Z jcw $
- *
- * Jeelabs OOK decoders
- *
- *     byte total_bits, bits, flip, state, pos, data[25];
- * no distinction between pulse/mark and spaces
- * pos = nrBytes
- * w = isLong
- *
- *	OregonDecoderV2:
- *		200..1200, split on 700
- *			Preamble: Upto 32 long PS.
- *			Short/Short starts data
- *			TO + second Short: Manchester 0, to OK.
- *			OK + Long: Manchester 1
- *			OK + Short: TO: wait second short.
- *			? Only add data on totalbits even?,         pos = total_bits >> 4;
- *			totalbits 160 at end.
- *
- *	OregonDecoderV3:
- *			Same as V2 but
- *			pos = total_bits >> 3;
- *			totalbits 80 at end
- *
- *	CrestaDecoder:
- *		200..1300, split on 750
- *		Preamble: Long 2..10
- *			First short starts data
- *			Short/Short: 0
- *			Long: 1?
- *			End 2500 and 7 bytes or more
- *
- * KakuDecoder
- *		180 .. 450 or  950 .. 1250, split on 700
- *			4 State decoder
- *		End 2500 && 8 * pos + bits == 12
- *		Nodo: (12*4 + 2): 50: Nodo checks valid 4 time patterns: keep.
- *
- * X10
- *		350..1800, split on 720
- *		Preamble: 4000, start with short
- *		Long: 1, Short 0.
- *		Timeout: 5000
- * 		End: 2000 and at least 4 bytes
- *
- * FS20 (868)
- *		300..775, split on 500
- *		Start with 20 short
- *		0: Short/Short
- *		1: Long/Long
- *
- *		End 1500 and 5 bytes
- *
- * NibbleStop bit
- * ByteStop bit
- */
-
 typedef enum IXPS {
 	ixPulse, ixSpace, ixPulseSpace
 } IXPS;
 
 struct OokProperties {
-	uint iTime; // RawIndexStart: index in RawSignal array for pulse/space times
-	uint iTimeEnd; //  xEnd / RawSignal[RawIndexStart] + RawIndexStart
+	uint iTime; // psmIndexStart: index in pulseSpaceMicros array for pulse/space times
+	uint iTimeEnd; //  xEnd / pulseSpaceMicros[psmIndexStart] + psmIndexStart
 	uint iTimeRange[3];// pulse, space, pulse + space
 #if 1
 	ulong lastHash;
@@ -95,7 +33,7 @@ struct OokProperties {
 #endif
 } Ook;
 
-#define Ook_NrTimeRanges(x)  (RawSignal[Ook.iTimeRange[x]] / 2)
+#define Ook_NrTimeRanges(x)  (pulseSpaceMicros[Ook.iTimeRange[x]] / 2)
 
 void PrintDash(void)
   {
@@ -139,11 +77,11 @@ void PrintNumHex(uint x, char c, uint digits) {
 
 // todo: add byte/nibble length, stopBit
 void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
-	uint iTimeSplitPulse = (RawSignal[Ook.iTimeRange[ixPulse] + 2] + RawSignal[Ook.iTimeRange[ixPulse] + 3]) / 2; //max Short + min long /2
-	uint iTimeSplitSpace = (RawSignal[Ook.iTimeRange[ixSpace] + 2] + RawSignal[Ook.iTimeRange[ixSpace] + 2]) / 2; //max Short + min long / 2
+	uint iTimeSplitPulse = (pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 3]) / 2; //max Short + min long /2
+	uint iTimeSplitSpace = (pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2]) / 2; //max Short + min long / 2
 	uint xEnd = Ook.iTimeEnd;
-	boolean isLongPreamblePulse = RawSignal[Ook.iTime + 3] > iTimeSplitPulse;
-	boolean isLongPreambleSpace = RawSignal[Ook.iTime + 4] > iTimeSplitSpace;
+	boolean isLongPreamblePulse = pulseSpaceMicros[Ook.iTime + 3] > iTimeSplitPulse;
+	boolean isLongPreambleSpace = pulseSpaceMicros[Ook.iTime + 4] > iTimeSplitSpace;
 	boolean isLongPrev;
 	uint iPreamble = 0;
 	uint iBits = 0;
@@ -156,40 +94,41 @@ void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
 	// preamble: long until short or short until long...
 	for (x = 1 + Ook.iTime; x <= xEnd-1; x++) {
 		// pulse
-		if (isLongPreamblePulse != (RawSignal[x] > iTimeSplitPulse)) {
+		if (isLongPreamblePulse != (pulseSpaceMicros[x] > iTimeSplitPulse)) {
 			break;
 		}
 		iPreamble++;
 		x++;
 		// space
-		if (isLongPreambleSpace != (RawSignal[x] > iTimeSplitSpace)) {
+		if (isLongPreambleSpace != (pulseSpaceMicros[x] > iTimeSplitSpace)) {
 			break;
 		}
 		iPreamble++;
  	}
 	uint iSync = 0;
-	uint iTimeSplitSync = max(RawSignal[Ook.iTimeRange[ixPulse] + 4], RawSignal[Ook.iTimeRange[ixSpace] + 4]); // longer than max long
+	uint iTimeSplitSync = max(pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 4], pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 4]); // longer than max long
 	for (;x <= xEnd-1; x++) {
-		if (RawSignal[x] <= iTimeSplitSync) {
+		if (pulseSpaceMicros[x] <= iTimeSplitSync) {
 			break;
 		}
 		iSync++;
 	}
-	x++;
+//	x++;
 	// old
 	boolean isLongPreamble = isLongPreamblePulse && isLongPreambleSpace;
 	uint iTimeSplit = max(iTimeSplitPulse, iTimeSplitSpace);
 	Serial.print(F("!PreAmble"));
 	Serial.print((fSkipEven) ? F("Skip ") : ((iSync > 0) ? F("Sync ") : ((isLongPreamble) ? F("Long "): F("Short "))));
+
 	PrintNum(iPreamble, 0, 1);
-	PrintNum(RawSignal[Ook.iTime] - iPreamble - iSync, ' ', 1);
+	PrintNum(pulseSpaceMicros[Ook.iTime] - iPreamble - iSync, ' ', 1);
 	prevBit = (isLongPreamble) ? 1: 0; // last long was a 1
-	isLongPrev = (isLongPreamble) ? false : true; // stop on short that we skipped
+	isLongPrev = (isLongPreamble) ? false: true; // stop on short that we skipped
 	PrintChar(':');
 
 	// assume rest is manchester encoded
 	for (;x <= xEnd-1; x++) {
-		boolean isLong = RawSignal[x] > iTimeSplit;
+		boolean isLong = pulseSpaceMicros[x] > iTimeSplit;
 		if ((!isLong && !isLongPrev) || isLong) {  // double short or long
 			if (isLong) {
 				prevBit = (prevBit) ? 0 : 1;
@@ -236,7 +175,7 @@ void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
 
 // 938-952/2043-2053
 void RkrSyncPulseSpaceAnalyse(boolean fBitWise) {
-	uint iTimeSplit = (RawSignal[Ook.iTimeRange[ixPulseSpace] + 2] + RawSignal[Ook.iTimeRange[ixPulseSpace] + 3]) / 2; // max short pulse + space
+	uint iTimeSplit = (pulseSpaceMicros[Ook.iTimeRange[ixPulseSpace] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixPulseSpace] + 3]) / 2; // max short pulse + space
 	uint xEnd = Ook.iTimeEnd;
 	uint iBits = 0;
 	byte byteValLSB= 0;
@@ -247,7 +186,7 @@ void RkrSyncPulseSpaceAnalyse(boolean fBitWise) {
 	PrintChar(':');
 	// 0=countl, 1=startpulse, 2=space after startpulse, 3=1st data pulse
 	for (x = 3 + Ook.iTime; x <= xEnd-1; x+=2) {
-		boolean isLong = (RawSignal[x] + RawSignal[x + 1]) > iTimeSplit;
+		boolean isLong = (pulseSpaceMicros[x] + pulseSpaceMicros[x + 1]) > iTimeSplit;
 		byteValLSB = (byteValLSB << 1) | ((isLong) ? 0x01 : 0);
 		if (fBitWise) {
 			PrintNumHex(((isLong) ? 1 : 0), ((iBits == 0)) ? ' ' : 0, 0);
@@ -266,11 +205,11 @@ void RkrSyncPulseSpaceAnalyse(boolean fBitWise) {
 
 byte RkrTimeRangeAnalyse() {
 	uint iTimeRangePulse = RAW_BUFFER_TIMERANGE_START;
-	uint iTimeRangeSpace = iTimeRangePulse + RawSignal[iTimeRangePulse] + 1;
-	uint iTimeRangePulseSpace = iTimeRangePulseSpace = iTimeRangeSpace + RawSignal[iTimeRangeSpace] + 1;
-	uint cPulseRanges = RawSignal[iTimeRangePulse]/2;
-	uint cSpaceRanges = RawSignal[iTimeRangeSpace]/2;
-	uint cPulseSpaceRanges = RawSignal[iTimeRangePulseSpace]/2;
+	uint iTimeRangeSpace = iTimeRangePulse + pulseSpaceMicros[iTimeRangePulse] + 1;
+	uint iTimeRangePulseSpace = iTimeRangePulseSpace = iTimeRangeSpace + pulseSpaceMicros[iTimeRangeSpace] + 1;
+	uint cPulseRanges = pulseSpaceMicros[iTimeRangePulse]/2;
+	uint cSpaceRanges = pulseSpaceMicros[iTimeRangeSpace]/2;
+	uint cPulseSpaceRanges = pulseSpaceMicros[iTimeRangePulseSpace]/2;
 	uint iMatchRanges = 0;
 #ifdef RKRRANGEANALYSE_VERBOSE
 	PrintNum(cPulseRanges, 0, 1);
@@ -280,12 +219,12 @@ byte RkrTimeRangeAnalyse() {
 	if (cPulseRanges <= 1 || cSpaceRanges <= 1) {
 			return 2; // Pulse Or Space single range: don't bother just use pulse+space length
 	}
-	for (uint iPulse = iTimeRangePulse + 1; iPulse <= iTimeRangePulse + RawSignal[iTimeRangePulse]; iPulse += 2) {
-		int MinPulse = RawSignal[iPulse];
-		int MaxPulse = RawSignal[iPulse + 1];
-		for (uint iSpace = iTimeRangeSpace + 1; iSpace <= iTimeRangeSpace + RawSignal[iTimeRangeSpace]; iSpace += 2) {
-			int MinSpace = RawSignal[iSpace];
-			int MaxSpace = RawSignal[iSpace + 1];
+	for (uint iPulse = iTimeRangePulse + 1; iPulse <= iTimeRangePulse + pulseSpaceMicros[iTimeRangePulse]; iPulse += 2) {
+		int MinPulse = pulseSpaceMicros[iPulse];
+		int MaxPulse = pulseSpaceMicros[iPulse + 1];
+		for (uint iSpace = iTimeRangeSpace + 1; iSpace <= iTimeRangeSpace + pulseSpaceMicros[iTimeRangeSpace]; iSpace += 2) {
+			int MinSpace = pulseSpaceMicros[iSpace];
+			int MaxSpace = pulseSpaceMicros[iSpace + 1];
 #if 0
 			PrintNum(MinSpace, ',', 1);
 			PrintNum(abs((MinPulse - MinSpace)), ',', 1);
@@ -293,10 +232,10 @@ byte RkrTimeRangeAnalyse() {
 #endif
 			// pulse length same range as space length?
 			if (((abs((MinPulse - MinSpace))) < 100) && (abs(((MaxPulse - MaxSpace))) <100)) {
-				RawSignal[iPulse] = min(MinPulse, MinSpace);
-				RawSignal[iSpace] = min(MinPulse, MinSpace);
-				RawSignal[iPulse+1] = max(MaxPulse, MaxSpace);
-				RawSignal[iSpace+1] = max(MaxPulse, MaxSpace);
+				pulseSpaceMicros[iPulse] = min(MinPulse, MinSpace);
+				pulseSpaceMicros[iSpace] = min(MinPulse, MinSpace);
+				pulseSpaceMicros[iPulse+1] = max(MaxPulse, MaxSpace);
+				pulseSpaceMicros[iSpace+1] = max(MaxPulse, MaxSpace);
 				iMatchRanges++;
 			}
 		}
@@ -316,9 +255,9 @@ void RkrTimeRangeReplaceMedian(uint Min, uint Max, uint Median, int What) {
 	}
 	// 0=countl, 1=startpulse, 2=space after startpulse, 3=1st data pulse
 	for (uint x = 1 + Ook.iTime; x <= xEnd-1; x+=2) {
-		uint value = RawSignal[x + What];
+		uint value = pulseSpaceMicros[x + What];
 		if (value >= Min && value <= Max) {
-				RawSignal[x + What] = Median;
+				pulseSpaceMicros[x + What] = Median;
 		}
 	}
 }
@@ -342,10 +281,10 @@ void RkrTimeRangePsReplaceMedian() {
 	uint iTimeRange = RAW_BUFFER_TIMERANGE_START;
 	for (int What = 0; What < 2; What++) {
 		int i=1;
-		int iEnd=RawSignal[iTimeRange];
+		int iEnd=pulseSpaceMicros[iTimeRange];
 		for (i = 1; i < iEnd; i+=2) {
-				uint Min = RawSignal[iTimeRange + i];
-				uint Max = RawSignal[iTimeRange + i + 1];
+				uint Min = pulseSpaceMicros[iTimeRange + i];
+				uint Max = pulseSpaceMicros[iTimeRange + i + 1];
 				uint Median = (Min + Max) / 2;
 #ifdef 	RKR_MEDIANROUNDING	// Try Median rounding
 				Median = RkrRoundTime(Median);
@@ -353,43 +292,43 @@ void RkrTimeRangePsReplaceMedian() {
 				RkrTimeRangeReplaceMedian(Min, Max, Median, What);
 		}
 #ifdef 	RKR_ROUGHSYNC
-		if (RawSignal[Ook.iTime + 1 + What] * 2 <= RawSignal[Ook.iTime + 3 + What] * 3) { // 1.5 sync
-			RawSignal[Ook.iTime + 1 + What] = RawSignal[Ook.iTime + 3 + What];
+		if (pulseSpaceMicros[Ook.iTime + 1 + What] * 2 <= pulseSpaceMicros[Ook.iTime + 3 + What] * 3) { // 1.5 sync
+			pulseSpaceMicros[Ook.iTime + 1 + What] = pulseSpaceMicros[Ook.iTime + 3 + What];
 		}
 #endif
 #ifdef 	RKR_MEDIANROUNDING	// Rounding sync/preamble as well
-		RawSignal[Ook.iTime + 1 + What] = RkrRoundTime(RawSignal[Ook.iTime + 1 + What]);
-		RawSignal[Ook.iTime + 3 + What] = RkrRoundTime(RawSignal[Ook.iTime + 3 + What]);
+		pulseSpaceMicros[Ook.iTime + 1 + What] = RkrRoundTime(pulseSpaceMicros[Ook.iTime + 1 + What]);
+		pulseSpaceMicros[Ook.iTime + 3 + What] = RkrRoundTime(pulseSpaceMicros[Ook.iTime + 3 + What]);
 #endif
-		iTimeRange += RawSignal[iTimeRange] + 1;
+		iTimeRange += pulseSpaceMicros[iTimeRange] + 1;
 	}
 }
 
-// called from RawSignal_2_32bit, that is called by PrintRawSignal...
+// called from RawSignal_2_32bit, that is called by PrintPulseSpaceTiming...
 //int RkrTimeRange(uint iTime, uint iTimeRange, int What) {
 int RkrTimeRange(uint MinTime, uint MaxTime, byte What) {
 	uint i=1;
 	uint iEnd = 2;
-	uint iTimeRange = (What == 0) ? RAW_BUFFER_TIMERANGE_START : Ook.iTimeRange[What - 1] + RawSignal[Ook.iTimeRange[What - 1]] + 1;
+	uint iTimeRange = (What == 0) ? RAW_BUFFER_TIMERANGE_START : Ook.iTimeRange[What - 1] + pulseSpaceMicros[Ook.iTimeRange[What - 1]] + 1;
 	Ook.iTimeRange[What] = iTimeRange;
-	RawSignal[iTimeRange] = iEnd;
-	RawSignal[iTimeRange+1] = MinTime;
-	RawSignal[iTimeRange+2] = MaxTime;
+	pulseSpaceMicros[iTimeRange] = iEnd;
+	pulseSpaceMicros[iTimeRange+1] = MinTime;
+	pulseSpaceMicros[iTimeRange+2] = MaxTime;
 
-	if (RawSignal[Ook.iTime] < 10) {
+	if (pulseSpaceMicros[Ook.iTime] < 10) {
 		return 0;
 	}
-	if (Ook.iTime + RawSignal[Ook.iTime] >= iTimeRange) {
+	if (Ook.iTime + pulseSpaceMicros[Ook.iTime] >= iTimeRange) {
 		PrintNum(Ook.iTime,0, 3);
-		PrintNum(Ook.iTime + RawSignal[Ook.iTime],',', 3);
+		PrintNum(Ook.iTime + pulseSpaceMicros[Ook.iTime],',', 3);
 		PrintNum(iTimeRange,',', 3);
 		Serial.print(F("!RkrTimeRange Overflow!\n"));
 		return 0;
 	}
 
 	while ((i < iEnd) && (iEnd < (RAW_BUFFER_TIMERANGE_SIZE - 2))) {
-		uint Min=RawSignal[iTimeRange + i + 1];
-		uint Max=RawSignal[iTimeRange + i + 0]; //RKR
+		uint Min=pulseSpaceMicros[iTimeRange + i + 1];
+		uint Max=pulseSpaceMicros[iTimeRange + i + 0]; //RKR
 
 		if (i > 16) {
 			return iEnd;
@@ -413,9 +352,9 @@ int RkrTimeRange(uint MinTime, uint MaxTime, byte What) {
 			// 0=countl, 1=startpulse, 2=space after startpulse, 3=1st data pulse
 			// RKR try 3 instead of 5 for starters
 			for (x = 3 + Ook.iTime; x <= xEnd-4; x+=2) {
-				uint value = ((What == 0) ? RawSignal[x] // pulse
-									   : ((What == 1) ? RawSignal[x + 1] //space
-													:  (RawSignal[x] + RawSignal[x + 1]))); // pulse + space
+				uint value = ((What == 0) ? pulseSpaceMicros[x] // pulse
+									   : ((What == 1) ? pulseSpaceMicros[x + 1] //space
+													:  (pulseSpaceMicros[x] + pulseSpaceMicros[x + 1]))); // pulse + space
 				if (value < Min && value >= Median) {
 					Min=value; // Zoek naar de kortste pulstijd.
 				}
@@ -424,16 +363,16 @@ int RkrTimeRange(uint MinTime, uint MaxTime, byte What) {
 				}
 			}
 			// at least one new value found: extend with 2
-			if (/* (Min != Max) && */ !((Min==RawSignal[iTimeRange + i + 1]) && (Max==RawSignal[iTimeRange + i + 0]))) {
+			if (/* (Min != Max) && */ !((Min==pulseSpaceMicros[iTimeRange + i + 1]) && (Max==pulseSpaceMicros[iTimeRange + i + 0]))) {
 				//return iEnd;
 				// extend array with 2
 				iEnd += 2;
-				RawSignal[iTimeRange] = iEnd;
+				pulseSpaceMicros[iTimeRange] = iEnd;
 				for (int j = iEnd; j > i+2; j--) {
-					RawSignal[iTimeRange + j] = RawSignal[iTimeRange + j - 2];
+					pulseSpaceMicros[iTimeRange + j] = pulseSpaceMicros[iTimeRange + j - 2];
 				}
-				RawSignal[iTimeRange + i + 1] = Max;
-				RawSignal[iTimeRange + i + 2] = Min;
+				pulseSpaceMicros[iTimeRange + i + 1] = Max;
+				pulseSpaceMicros[iTimeRange + i + 2] = Min;
 			}
 			else {
 				i++;
@@ -455,7 +394,7 @@ int RkrTimeRange(uint MinTime, uint MaxTime, byte What) {
 			}
 
 		}
-		Serial.print(RawSignal[iTimeRange+j],DEC);
+		Serial.print(pulseSpaceMicros[iTimeRange+j],DEC);
 	}
 	PrintChar(']');
 	return iEnd;
@@ -479,22 +418,22 @@ int RkrPrintTimeRangeStats(byte ixPs, uint StartTime, uint MinTime, uint MaxTime
 /*
  * Transfer point From Nodo_Due code into OokTimeRangeCode
  *
- *	RawSignal[Ook.iTime] contains start of Nodo measured timings
+ *	pulseSpaceMicros[Ook.iTime] contains start of Nodo measured timings
  *	Ook.iTime == 0: original nodo code
  *	              != 0: measure repetitions before decoding...
  *
  */
-void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
+void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 	uint x, xEnd;
 	uint i;
 	byte iPrintPulseAndSpace = 3; // normal 3, now 0 to show only results
 	byte iPrintPulseAndSpaceRounded = 3;
 	Ook.iTime = iTime;
-	Ook.iTimeEnd = RawSignal[iTime] + iTime;
+	Ook.iTimeEnd = pulseSpaceMicros[iTime] + iTime;
 	xEnd = Ook.iTimeEnd;
 	int iTimeRange = RAW_BUFFER_TIMERANGE_START;
 	ulong hash;
-	RawSignal[iTimeRange] = 0;
+	pulseSpaceMicros[iTimeRange] = 0;
 	Ook.iTimeRange[ixPulse] = iTimeRange;
 	Ook.iTimeRange[ixSpace] = iTimeRange;
 	Ook.iTimeRange[ixPulseSpace] = iTimeRange;
@@ -502,12 +441,12 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 	if ((Ook.iTime > RAW_BUFFER_SIZE+2) || (Ook.iTimeEnd > RAW_BUFFER_SIZE+2)) {
 		PrintNum(Ook.iTime,0, 3);
 		PrintNum(Ook.iTimeEnd,',', 3);
-		Serial.print(F("!PrintRawSignal Overflow\n!"));
+		Serial.print(F("!PrintPulseSpaceTiming Overflow\n!"));
 		return;
 	}
 	i = 0;
 	for(int x=1+Ook.iTime;x<=xEnd;x++) {
-		i += RawSignal[x];
+		i += pulseSpaceMicros[x];
 	}
 
 	if (i <= 0) {
@@ -521,8 +460,8 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 		Serial.print(fIsRf ? F("!Rf") : F("!Ir"));
 		Serial.print(F("* "));
 		// inter message time
-		PrintNum(RawStartSignalTime - RawStartSignalTimeLast,0, 5);
-		RawStartSignalTimeLast = RawStartSignalTime;
+		PrintNum(psStartSignalMillis - psStartSignalMillisLast,0, 5);
+		psStartSignalMillisLast = psStartSignalMillis;
 	}
 	else {
 #if 1
@@ -538,7 +477,7 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 			Serial.print(F("- "));
 		}
 		// intra message
-		PrintNum(RawSignal[xEnd+1],0, 5);
+		PrintNum(pulseSpaceMicros[xEnd+1],0, 5);
 	}
 #if 1
 	Ook.lastHash = hash;
@@ -548,24 +487,24 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 	//total time
 	i = 0;
 	for(int x=1+Ook.iTime;x<=xEnd;x++) {
-		i += RawSignal[x];
+		i += pulseSpaceMicros[x];
 	}
 	PrintNum(i,',', 5);
 //	PrintComma();
 
 	// count
-	PrintNum(RawSignal[Ook.iTime],',', 2);
+	PrintNum(pulseSpaceMicros[Ook.iTime],',', 2);
 //	PrintComma();
 
 	// net count min spikes
 	i = 0;
 	for(int x=1+Ook.iTime;x<=xEnd;x++) {
-		if (RawSignal[x] < 100) {
+		if (pulseSpaceMicros[x] < 100) {
 			i++;
 		}
 	}
 
-	PrintNum(RawSignal[Ook.iTime]-i,',', 0);
+	PrintNum(pulseSpaceMicros[Ook.iTime]-i,',', 0);
 //	PrintComma();
 
 	PrintNum(i,',', 0);
@@ -586,18 +525,18 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 						PrintNum(x - (1+Ook.iTime), 0, 4);
 						PrintChar(':');
 						if (iPrintPulseAndSpace & 1) { // mark, space
-							PrintNum(RawSignal[x], 0, 4);
+							PrintNum(pulseSpaceMicros[x], 0, 4);
 						}
 				}
 				else {
 					if (iPrintPulseAndSpace & 1) { // mark, space
-						PrintNum(RawSignal[x], ',', 4);
+						PrintNum(pulseSpaceMicros[x], ',', 4);
 					}
 				}
 				if (iPrintPulseAndSpace & 2) { // mark + space
 					if ((x - (1+Ook.iTime))%2==1) {
 						Serial.print(F(" ["));
-						PrintNum(RawSignal[x] + RawSignal[x-1], 0, 4);
+						PrintNum(pulseSpaceMicros[x] + pulseSpaceMicros[x-1], 0, 4);
 						PrintChar(']');
 					}
 				}
@@ -606,7 +545,7 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 			PrintTerm();
 		}
 		if (i == 0) {
-			if (RawSignal[iTimeRange] != 0) {
+			if (pulseSpaceMicros[iTimeRange] != 0) {
 				Serial.print(F("!Rounded "));
 				iPrintPulseAndSpaceRounded = RkrTimeRangeAnalyse();
 				RkrTimeRangePsReplaceMedian();
@@ -635,7 +574,7 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 				}
 				if ((x - (1+Ook.iTime))%2==1) {
 					Serial.print(F(" ["));
-					PrintNum(RawSignal[x] + RawSignal[x-1], 0, 4);
+					PrintNum(pulseSpaceMicros[x] + pulseSpaceMicros[x-1], 0, 4);
 					PrintChar(']');
 				}
 			}
@@ -644,13 +583,13 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 	}
 	// Preamble experiment 2,2,3
 	if ((Ook_NrTimeRanges(ixPulseSpace)>=3) && ((Ook_NrTimeRanges(ixPulse)>=2) && (Ook_NrTimeRanges(ixSpace)>=2))) { // preamble/manchester like
-		if (RawSignal[iTime] <= 180) {
+		if (pulseSpaceMicros[iTime] <= 180) {
 			RkrPreAmbleAnalyse(false, false);
 			RkrPreAmbleAnalyse(true, false);
 		}
 		else {// oregon scientific v2 protocol?
 			RkrPreAmbleAnalyse(false, false);
-			RkrPreAmbleAnalyse(false, true);
+			//RkrPreAmbleAnalyse(false, true); does not work!
 			//RkrPreAmbleAnalyse(true, true);
 		}
 	}
@@ -662,21 +601,21 @@ void PrintRawSignalOokTimeRange(uint iTime, boolean fIsRf) {
 }
 
 
-void PrintRawSignalAvrLirc(uint iTime) {
+void PrintPulseSpaceTimingAvrLirc(uint iTime) {
 	uint x, xEnd;
 	uint i;
 
 	Ook.iTime = iTime;
-	Ook.iTimeEnd = RawSignal[iTime] + iTime;
+	Ook.iTimeEnd = pulseSpaceMicros[iTime] + iTime;
 	xEnd = Ook.iTimeEnd;
 	int iTimeRange = RAW_BUFFER_TIMERANGE_START;
-	RawSignal[iTimeRange] = 0;
+	pulseSpaceMicros[iTimeRange] = 0;
 	Ook.iTimeRange[ixPulse] = iTimeRange;
 	Ook.iTimeRange[ixSpace] = iTimeRange;
 	Ook.iTimeRange[ixPulseSpace] = iTimeRange;
 	i = 0;
 	for(int x=1+Ook.iTime;x<=xEnd;x++) {
-		i += RawSignal[x];
+		i += pulseSpaceMicros[x];
 	}
 
 	if (i <= 0) {
@@ -685,20 +624,20 @@ void PrintRawSignalAvrLirc(uint iTime) {
 	emit_pulse_data(1+Ook.iTime, xEnd); // use AvrLirc code...
 }
 
-void PrintRawSignalAnalysIr(uint iTime) {
+void PrintPulseSpaceTimingAnalysIr(uint iTime) {
 	uint x, xEnd;
 	uint i;
 	Ook.iTime = iTime;
-	Ook.iTimeEnd = RawSignal[iTime] + iTime;
+	Ook.iTimeEnd = pulseSpaceMicros[iTime] + iTime;
 	xEnd = Ook.iTimeEnd;
 	int iTimeRange = RAW_BUFFER_TIMERANGE_START;
-	RawSignal[iTimeRange] = 0;
+	pulseSpaceMicros[iTimeRange] = 0;
 	Ook.iTimeRange[ixPulse] = iTimeRange;
 	Ook.iTimeRange[ixSpace] = iTimeRange;
 	Ook.iTimeRange[ixPulseSpace] = iTimeRange;
 	i = 0;
 	for(int x=1+Ook.iTime;x<=xEnd;x++) {
-		i += RawSignal[x];
+		i += pulseSpaceMicros[x];
 	}
 
 	if (i <= 0) {
@@ -707,28 +646,49 @@ void PrintRawSignalAnalysIr(uint iTime) {
 	reportPulses(1+Ook.iTime, xEnd); // use AnalysIR code...
 }
 
-#if 1
-void PrintRawSignal(uint iTime, boolean fIsRf) {
-	if (settings.Mode != omLirc) {
-		PrintRawSignalOokTimeRange(iTime, fIsRf);
+#ifdef JEELABS_DECODERS
+void PrintPulseSpaceTimingJeeLabsOok(uint iTime) {
+	uint x, xEnd;
+	uint i;
+	Ook.iTime = iTime;
+	Ook.iTimeEnd = pulseSpaceMicros[iTime] + iTime;
+	xEnd = Ook.iTimeEnd;
+	int iTimeRange = RAW_BUFFER_TIMERANGE_START;
+	pulseSpaceMicros[iTimeRange] = 0;
+	Ook.iTimeRange[ixPulse] = iTimeRange;
+	Ook.iTimeRange[ixSpace] = iTimeRange;
+	Ook.iTimeRange[ixPulseSpace] = iTimeRange;
+	i = 0;
+	for(int x=1+Ook.iTime;x<=xEnd;x++) {
+		i += pulseSpaceMicros[x];
 	}
-	if (settings.Mode == omAnaysIR) {
-		Serial.print(F("!AnalysIr!"));
-		PrintRawSignalAnalysIr(iTime);
+
+	if (i <= 0) {
+		return;
 	}
-	if (settings.Mode == omLirc) {
-		// Serial.print(F("!Avr!"));
-		PrintRawSignalAvrLirc(iTime);
-		PrintTerm();
-	}
-}
-#else
-void PrintRawSignal(uint iTime, boolean fIsRf) {
-	PrintRawSignalAnalysIr(iTime);
+	jeeLabsOokOsv2(1+Ook.iTime, xEnd); // use AnalysIR code...
 }
 #endif
 
-void PrintRawSignalEnd() {
+void PrintPulseSpaceTiming(uint iTime, boolean fIsRf) {
+	if (settings.Mode != omLirc) {
+		PrintPulseSpaceTimingOokTimeRange(iTime, fIsRf);
+#ifdef JEELABS_DECODERS
+		PrintPulseSpaceTimingJeeLabsOok(iTime);
+#endif
+	}
+	if (settings.Mode == omAnaysIR) {
+		Serial.print(F("!AnalysIr!"));
+		PrintPulseSpaceTimingAnalysIr(iTime);
+	}
+	if (settings.Mode == omLirc) {
+		// Serial.print(F("!Avr!"));
+		PrintPulseSpaceTimingAvrLirc(iTime);
+		PrintTerm();
+	}
+}
+
+void PrintPulseSpaceTimingEnd() {
 	if (settings.Mode !=omLirc) {
 		Serial.print(F("!End"));
 		PrintTermRaw();
@@ -741,11 +701,11 @@ void PrintRawSignalEnd() {
  * Doorlopen van een volledig gevulde eventlist duurt ongeveer 15ms inclusief printen naar serial
  * maar exclusief verwerking n.a.v. een 'hit'.
  \*********************************************************************************************/
-void PrintRawSignals(ulong Hash, boolean fIsRf) {
+void PrintPulseSpaceTimings(ulong Hash, boolean fIsRf) {
 	digitalWrite(MonitorLedPin,HIGH);           // LED aan als er iets verwerkt wordt
 	// RAWSIGNAL_MULTI
-	for(int RawSignalStart = 0; (RawSignal[RawSignalStart] != 0) && (RawSignalStart < RAW_BUFFER_SIZE); RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 2) {
-		PrintRawSignal(RawSignalStart, fIsRf);
+	for(int psmStart = 0; (pulseSpaceMicros[psmStart] != 0) && (psmStart < RAW_BUFFER_SIZE); psmStart = psmStart + pulseSpaceMicros[psmStart] + 2) {
+		PrintPulseSpaceTiming(psmStart, fIsRf);
 	}
-	PrintRawSignalEnd();
+	PrintPulseSpaceTimingEnd();
 }

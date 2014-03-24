@@ -1,7 +1,7 @@
 /*
  * Transfer point From Nodo_Due code into AvrLirc code
  *
- *	RawSignal[Ook.iTime] contains start of Nodo measured timings
+ *	pulseSpaceMicros[Ook.iTime] contains start of Nodo measured timings
  *	Ook.iTime == 0: original nodo code
  *	              != 0: measure repetitions before decoding...
  *
@@ -106,7 +106,7 @@ emit_pulse_data(uint xStart, uint xEnd)
 	byte had_overflow = 1;
 
 	for(int x=xStart;x<=xEnd;x++, high = !high) {
-		word pulse_length = RawSignal[x];
+		word pulse_length = pulseSpaceMicros[x];
 //		high = (x - xStart) %2 != 1;
 //    while (pulse_length) {
 	//	cli();

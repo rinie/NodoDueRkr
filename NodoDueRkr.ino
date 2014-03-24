@@ -3,7 +3,7 @@
  * Based on Nodo Due 1.2.1 by Paul Tonkes
  *
  * (c) 2011-2014 Rinie Kervel
- * Use Nodo Due as a Nice base for RawSignal analysis of pulse/space signals
+ * Use Nodo Due as a Nice base for pulseSpaceMicros analysis of pulse/space signals
  * but rip out event processing and other parts I do not need
  * Adapt I/O for LIRC serial and AnalysIR
  * Experiment with dynamic timing based on received signals independant of protocols
@@ -59,7 +59,7 @@ prog_char PROGMEM Text_01[] = "NodoDueRkr based on Nodo Due (c)2011 P.K.Tonkes."
 prog_char PROGMEM Text_02[] = "License: GNU General Public License.";
 prog_char PROGMEM Text_03[] = "Line=";
 prog_char PROGMEM Text_06[] = "Unknown command: ";
-prog_char PROGMEM Text_07[] = "RawSignal=";
+prog_char PROGMEM Text_07[] = "pulseSpaceMicros=";
 prog_char PROGMEM Text_08[] = "Queue=Out, ";
 prog_char PROGMEM Text_09[] = "Queue=In, ";
 prog_char PROGMEM Text_10[] = "TimeStamp=";
@@ -216,12 +216,12 @@ struct Settings
 // timers voor verwerking op intervals
 #define Loop_INTERVAL_1          250  // tijdsinterval in ms. voor achtergrondtaken.
 #define Loop_INTERVAL_2         5000  // tijdsinterval in ms. voor achtergrondtaken.
-ulong StaySharpTimer=millis();
+ulong StaySharpMillis=millis();
 ulong LoopIntervalTimer_1=millis();// millis() maakt dat de intervallen van 1 en 2 niet op zelfde moment vallen => 1 en 2 nu asynchroon
 ulong LoopIntervalTimer_2=0L;
-ulong RawStartSignalTime=millis(); // RKR measure time between signals
-ulong RawStartSignalTimeLast= 0; // RKR measure time between signals for filtered signals
-uint RawSignal[RAW_BUFFER_SIZE+4 + RAW_BUFFER_TIMERANGE_SIZE];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
+ulong psStartSignalMillis=millis(); // RKR measure time between signals
+ulong psStartSignalMillisLast= 0; // RKR measure time between signals for filtered signals
+uint pulseSpaceMicros[RAW_BUFFER_SIZE+4 + RAW_BUFFER_TIMERANGE_SIZE];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
 
 // RAWSIGNAL_TOGGLE
 boolean RawsignalGet=true;
@@ -281,78 +281,78 @@ void loop()
       if(Serial.available()>0)
         {
 			byte      SerialByte=Serial.read();
-        StaySharpTimer=millis()+SHARP_TIME;
+        StaySharpMillis=millis()+SHARP_TIME;
 //        SerialHold(false);
         }
-      }while(millis()<StaySharpTimer);
+      }while(millis()<StaySharpMillis);
 #endif
 	{ // RKR RawsignalGet measure repetitions
-		int RawSignalStart = 0;
-	    //StaySharpTimer=millis()+SHARP_TIME;
+		int psmStart = 0;
+	    //StaySharpMillis=millis()+SHARP_TIME;
 
 		// RF: *************** kijk of er data start op IR en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar IR, doordat andere input niet wordt opgepikt
 		  {
 		  while((*portInputRegister(IRport)&IRbit)==0)// Kijk if er iets op de IR poort binnenkomt. (Pin=LAAG als signaal in de ether).
 			{ulong StartSignalTime = millis();
-			if(FetchSignal(IR_ReceiveDataPin,LOW,SIGNAL_TIMEOUT_IR/2, RawSignalStart))// Als het een duidelijk IR signaal was
+			if(FetchSignal(IR_ReceiveDataPin,LOW,SIGNAL_TIMEOUT_IR/2, psmStart))// Als het een duidelijk IR signaal was
 			  {
-				  	if (RawSignalStart == 0) { //inter messages time
-						RawStartSignalTime = StartSignalTime;
+				  	if (psmStart == 0) { //inter messages time
+						psStartSignalMillis = StartSignalTime;
 					}
-					RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 2;
+					psmStart = psmStart + pulseSpaceMicros[psmStart] + 2;
 					 // intra message time
-					StartSignalTime -= (StaySharpTimer  - SHARP_TIME*2);
-					RawSignal[RawSignalStart-1] = (StartSignalTime > 0) ? StartSignalTime : 1;
+					StartSignalTime -= (StaySharpMillis  - SHARP_TIME*2);
+					pulseSpaceMicros[psmStart-1] = (StartSignalTime > 0) ? StartSignalTime : 1;
 
-					StaySharpTimer=millis()+SHARP_TIME*2;
+					StaySharpMillis=millis()+SHARP_TIME*2;
 			}
 			else { // Noise/Spikes
 					break;
 			}
 		  }
-		} while(millis()<StaySharpTimer);
-	    RawSignal[RawSignalStart]=0; // next count 0
-	    if (RawSignalStart > 0){
+		} while(millis()<StaySharpMillis);
+	    pulseSpaceMicros[psmStart]=0; // next count 0
+	    if (psmStart > 0){
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 			{
-			   PrintRawSignals(Content,false); // verwerk binnengekomen event.
+			   PrintPulseSpaceTimings(Content,false); // verwerk binnengekomen event.
 			}
 		}
 	}
 
 	{ // RKR RawsignalGet measure repetitions
-		int RawSignalStart = 0;
+		int psmStart = 0;
 
 		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
 		  {
 		  while((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
 			{ulong StartSignalTime = millis();
-			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, RawSignalStart))// Als het een duidelijk RF signaal was
+			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, psmStart))// Als het een duidelijk RF signaal was
 			  {
-				  	if (RawSignalStart == 0) { //inter messages time
-						RawStartSignalTime = StartSignalTime;
+				  	if (psmStart == 0) { //inter messages time
+						psStartSignalMillis = StartSignalTime;
 					}
-					RawSignalStart = RawSignalStart + RawSignal[RawSignalStart] + 2;
+					psmStart = psmStart + pulseSpaceMicros[psmStart] + 2;
 					 // intra message time
-					StartSignalTime -= (StaySharpTimer  - SHARP_TIME);
-					RawSignal[RawSignalStart-1] = (StartSignalTime > 0) ? StartSignalTime : 1;
+					StartSignalTime -= (StaySharpMillis  - SHARP_TIME);
+					pulseSpaceMicros[psmStart-1] = (StartSignalTime > 0) ? StartSignalTime : 1;
 
-					StaySharpTimer=millis()+SHARP_TIME;
+					StaySharpMillis=millis()+SHARP_TIME;
 			}
 			else { // Noise/Spikes
 					break;
 			}
 		  }
-		} while(millis()<StaySharpTimer);
-	    RawSignal[RawSignalStart]=0; // next count 0
-	    if (RawSignalStart > 0){
+		} while(millis()<StaySharpMillis);
+	    pulseSpaceMicros[psmStart]=0; // next count 0
+	    if (psmStart > 0){
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 			{
-			   PrintRawSignals(Content,true); // verwerk binnengekomen event.
+			   PrintPulseSpaceTimings(Content,true); // verwerk binnengekomen event.
 			}
 		}
 	}

@@ -25,45 +25,45 @@
 #define NewKAKUdim_RawSignalLength   148
 #define KAKU_CodeLength    12
 
-ulong AnalyzeRawSignal(uint RawIndexStart)
+ulong AnalyzeRawSignal(uint psmIndexStart)
   {
   ulong Code=0L;
 
-  if(RawSignal[RawIndexStart]>=RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
+  if(pulseSpaceMicros[psmIndexStart]>=RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
 
-	switch (RawSignal[RawIndexStart]) {
+	switch (pulseSpaceMicros[psmIndexStart]) {
 	case 66:
-  		Code=RawSignal_2_Nodo(RawIndexStart);
+  		Code=RawSignal_2_Nodo(psmIndexStart);
   		break;
   	case KAKU_CodeLength*4+2:
-    	Code=RawSignal_2_KAKU(RawIndexStart);
+    	Code=RawSignal_2_KAKU(psmIndexStart);
     	break;
     case NewKAKU_RawSignalLength:
     case NewKAKUdim_RawSignalLength:
-      	Code=RawSignal_2_NewKAKU(RawIndexStart);
+      	Code=RawSignal_2_NewKAKU(psmIndexStart);
       	break;
  	}
   if (!Code) { // Geen Nodo, KAKU of NewKAKU code. Genereer uit het onbekende signaal een (vrijwel) unieke 32-bit waarde uit.
-     Code=RawSignal_2_32bit(RawIndexStart, false);
+     Code=RawSignal_2_32bit(psmIndexStart, false);
   }
   return Code;
   }
 
 /*********************************************************************************************\
-* Deze routine berekent de uit een RawSignal een NODO code
+* Deze routine berekent de uit een pulseSpaceMicros een NODO code
 * Geeft een false retour als geen geldig NODO signaal
 \*********************************************************************************************/
-ulong RawSignal_2_Nodo(uint RawIndexStart)
+ulong RawSignal_2_Nodo(uint psmIndexStart)
   {
   ulong bitstream=0L;
   int x,y,z;
-  int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
+  int xEnd = pulseSpaceMicros[psmIndexStart] + psmIndexStart;
   // nieuwe NODO signaal bestaat altijd uit start bit + 32 bits. Ongelijk aan 66, dan geen Nodo signaal
-  if (RawSignal[RawIndexStart]!=66)return 0L;
+  if (pulseSpaceMicros[psmIndexStart]!=66)return 0L;
 
-  x=3 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
+  x=3 + psmIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
   do{
-    if(RawSignal[x]>NODO_PULSE_MID)
+    if(pulseSpaceMicros[x]>NODO_PULSE_MID)
       bitstream|=(ulong)(1L<<z); //LSB in signaal wordt  als eerste verzonden
     x+=2;
     z++;
@@ -79,13 +79,13 @@ ulong RawSignal_2_Nodo(uint RawIndexStart)
 
 
  /**********************************************************************************************\
- * Deze functie genereert uit een willekeurig gevulde RawSignal afkomstig van de meeste
+ * Deze functie genereert uit een willekeurig gevulde pulseSpaceMicros afkomstig van de meeste
  * afstandsbedieningen een (vrijwel) unieke bit code.
  * Zowel breedte van de pulsen als de afstand tussen de pulsen worden in de berekening
  * meegenomen zodat deze functie geschikt is voor PWM, PDM en Bi-Pase modulatie.
  * LET OP: Het betreft een unieke hash-waarde zonder betekenis van waarde.
  \*********************************************************************************************/
-ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
+ulong RawSignal_2_32bit(uint psmIndexStart, bool fPrint) {
 	int x,y,z;
 	int Counter_pulse=0,Counter_space=0;
 	int MinPulse=0xffff;
@@ -98,37 +98,37 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 	int MinSpaceP;
 	ulong CodeP=0L;
 	ulong CodeS=0L;
-	int xEnd = RawSignal[RawIndexStart] + RawIndexStart;
+	int xEnd = pulseSpaceMicros[psmIndexStart] + psmIndexStart;
 
 	// Kleinste, groter dan mid
 	// Grootste, kleinder dan mid
 	// diff > x?
 	// dan replace by median
 	// zoek de kortste tijd (PULSE en SPACE)
-	x = 5 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
+	x = 5 + psmIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
 	while (x <= xEnd-4) {
-		if (RawSignal[x] < MinPulse) {
-			MinPulse=RawSignal[x]; // Zoek naar de kortste pulstijd.
+		if (pulseSpaceMicros[x] < MinPulse) {
+			MinPulse=pulseSpaceMicros[x]; // Zoek naar de kortste pulstijd.
 		}
-		if (RawSignal[x] > MaxPulse) {
-			MaxPulse=RawSignal[x]; // Zoek naar de langste pulstijd.
+		if (pulseSpaceMicros[x] > MaxPulse) {
+			MaxPulse=pulseSpaceMicros[x]; // Zoek naar de langste pulstijd.
 		}
 
 		x++;
 
-		if (RawSignal[x] < MinSpace && RawSignal[x] > 10) {
-			MinSpace=RawSignal[x]; // Zoek naar de kortste spacetijd.
+		if (pulseSpaceMicros[x] < MinSpace && pulseSpaceMicros[x] > 10) {
+			MinSpace=pulseSpaceMicros[x]; // Zoek naar de kortste spacetijd.
 		}
-		if (RawSignal[x] > MaxSpace) {
-			MaxSpace=RawSignal[x]; // Zoek naar de langste spacetijd.
-		}
-
-		if (RawSignal[x]+RawSignal[x-1] < MinPulseSpace && RawSignal[x] > 10) {
-				MinPulseSpace=RawSignal[x]+RawSignal[x-1]; // Zoek naar de kortste pulse + spacetijd.
+		if (pulseSpaceMicros[x] > MaxSpace) {
+			MaxSpace=pulseSpaceMicros[x]; // Zoek naar de langste spacetijd.
 		}
 
-		if (RawSignal[x]+RawSignal[x-1] > MaxPulseSpace) {
-			MaxPulseSpace = RawSignal[x] + RawSignal[x-1]; // Zoek naar de langste pulse + spacetijd.
+		if (pulseSpaceMicros[x]+pulseSpaceMicros[x-1] < MinPulseSpace && pulseSpaceMicros[x] > 10) {
+				MinPulseSpace=pulseSpaceMicros[x]+pulseSpaceMicros[x-1]; // Zoek naar de kortste pulse + spacetijd.
+		}
+
+		if (pulseSpaceMicros[x]+pulseSpaceMicros[x-1] > MaxPulseSpace) {
+			MaxPulseSpace = pulseSpaceMicros[x] + pulseSpaceMicros[x-1]; // Zoek naar de langste pulse + spacetijd.
 		}
 		x++;
 	}
@@ -152,7 +152,7 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 		MinSpace+= (MaxSpace-MinSpace) / 2;
 	}
 
-	x=3 + RawIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
+	x=3 + psmIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
 	z=0; // bit in de Code die geset moet worden
 	do {
 		if (z>31) {
@@ -160,7 +160,7 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 			CodeS=CodeS>>1;
 		}
 
-		if (RawSignal[x]>MinPulse) {
+		if (pulseSpaceMicros[x]>MinPulse) {
 			if (z <= 31) {// de eerste 32 bits vullen in de 32-bit variabele
 				CodeP |= (long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
 			}
@@ -171,7 +171,7 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 		}
 		x++;
 
-		if (RawSignal[x]>MinSpace) {
+		if (pulseSpaceMicros[x]>MinSpace) {
 			if (z<=31) {// de eerste 32 bits vullen in de 32-bit variabele
 				CodeS |= (long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
 			}
@@ -187,9 +187,9 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 	while (x<xEnd);
 
 	if (fPrint) { // RKR print Pulse/Space stats
-		RkrPrintTimeRangeStats(ixPulse, RawSignal[RawIndexStart+1], MinPulseP, MaxPulse, Counter_pulse, CodeP);
-		RkrPrintTimeRangeStats(ixSpace, RawSignal[RawIndexStart+2], MinSpaceP, MaxSpace, Counter_space, CodeS);
-		RkrPrintTimeRangeStats(ixPulseSpace, RawSignal[RawIndexStart+1] + RawSignal[RawIndexStart+2], MinPulseSpace, MaxPulseSpace, Counter_pulse + Counter_space, CodeS^CodeP);
+		RkrPrintTimeRangeStats(ixPulse, pulseSpaceMicros[psmIndexStart+1], MinPulseP, MaxPulse, Counter_pulse, CodeP);
+		RkrPrintTimeRangeStats(ixSpace, pulseSpaceMicros[psmIndexStart+2], MinSpaceP, MaxSpace, Counter_space, CodeS);
+		RkrPrintTimeRangeStats(ixPulseSpace, pulseSpaceMicros[psmIndexStart+1] + pulseSpaceMicros[psmIndexStart+2], MinPulseSpace, MaxPulseSpace, Counter_pulse + Counter_space, CodeS^CodeP);
 	}
 
 	if(Counter_pulse>=1 && Counter_space<=1) {
@@ -202,8 +202,8 @@ ulong RawSignal_2_32bit(uint RawIndexStart, bool fPrint) {
 }
 
  /*********************************************************************************************\
- * Deze routine berekend de RAW pulsen van een 32-bit Nodo-code en plaatst deze in de buffer RawSignal
- * RawSignal.Bits het aantal pulsen*2+startbit*2 ==> 66
+ * Deze routine berekend de RAW pulsen van een 32-bit Nodo-code en plaatst deze in de buffer pulseSpaceMicros
+ * pulseSpaceMicros.Bits het aantal pulsen*2+startbit*2 ==> 66
  *
  \*********************************************************************************************/
 void Nodo_2_RawSignal(ulong Code)
@@ -211,20 +211,20 @@ void Nodo_2_RawSignal(ulong Code)
   byte BitCounter,y=1;
 
   // begin met een startbit.
-  RawSignal[y++]=NODO_PULSE_1*2;
-  RawSignal[y++]=NODO_SPACE*4;
+  pulseSpaceMicros[y++]=NODO_PULSE_1*2;
+  pulseSpaceMicros[y++]=NODO_SPACE*4;
 
   // de rest van de bits LSB als eerste de lucht in
   for(BitCounter=0; BitCounter<=31; BitCounter++)
     {
     if(Code>>BitCounter&1)
-      RawSignal[y++]=NODO_PULSE_1;
+      pulseSpaceMicros[y++]=NODO_PULSE_1;
     else
-      RawSignal[y++]=NODO_PULSE_0;
-    RawSignal[y++]=NODO_SPACE;
+      pulseSpaceMicros[y++]=NODO_PULSE_0;
+    pulseSpaceMicros[y++]=NODO_SPACE;
     }
-  RawSignal[y-1]=NODO_PULSE_1*10; // pauze tussen de pulsreeksen
-  RawSignal[0]=66; //  1 startbit bestaande uit een pulse/space + 32-bits is 64 pulse/space = totaal 66
+  pulseSpaceMicros[y-1]=NODO_PULSE_1*10; // pauze tussen de pulsreeksen
+  pulseSpaceMicros[0]=66; //  1 startbit bestaande uit een pulse/space + 32-bits is 64 pulse/space = totaal 66
   }
 
 /**********************************************************************************************\
