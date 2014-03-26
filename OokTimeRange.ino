@@ -30,6 +30,8 @@ struct OokProperties {
 #if 1
 	ulong lastHash;
 	uint lastLength;
+	ulong lastTotalTime;
+	byte nRepeats;
 #endif
 } Ook;
 
@@ -75,18 +77,146 @@ void PrintNumHex(uint x, char c, uint digits) {
 	Serial.print(x,HEX);
 }
 
+int RkrManchesterAnalyse(boolean fPrint, boolean fBitWise, boolean fDoubleInvertedBits) {
+	uint iTimeSplitPulse = (pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 3]) / 2; //max Short + min long /2
+	uint iTimeSplitSpace = (pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2]) / 2; //max Short + min long / 2
+	boolean lsbFirst = fDoubleInvertedBits;
+	uint xEnd = Ook.iTimeEnd;
+	uint xStart = 1 + Ook.iTime;
+	uint x;
+	uint iTimeSplit = max(iTimeSplitPulse, iTimeSplitSpace);
+	// Atmel http://www.atmel.com/Images/doc9164.pdf
+	// Timing Based Manchester Decode
+	// find start of long->short crossing
+	for (x = xStart; x <= xEnd-1; x++) {
+		boolean isLong = pulseSpaceMicros[x] > iTimeSplit;
+		if (!isLong) {
+			break;
+		}
+	}
+	if (fPrint && fBitWise) {
+		PrintChar(' ');
+	}
+	byte prevBitVal;
+	boolean fSecondBit = false;
+	byte bitVal = ((x - xStart) & 1) ? 1 : 0; // start with Pulse == 1
+	byte byteVal= 0;
+	uint iBits = 0;
+	uint byteCount = 0;
+	for (;x <= xEnd-1; x++) {
+		// Compare stored count value with T
+		boolean isLong = pulseSpaceMicros[x] > iTimeSplit;
+		if (!isLong) { // T
+			// Capture next edge and make sure this value also = T (else error)
+			if ((x+1 <= xEnd-1) && !(pulseSpaceMicros[x+1] > iTimeSplit)) {
+				x++;
+				// Next bit = current bit
+				bitVal = (bitVal) ? 1 : 0;
+				if (fDoubleInvertedBits) {
+					if (fSecondBit) {
+						if (bitVal == prevBitVal) {
+							break; // no DoubleInvertedBits
+						}
+						fSecondBit = false;
+					}
+					else {
+						prevBitVal = bitVal;
+						fSecondBit = true;
+						continue; // only second bit is used for value
+					}
+				}
+				// Return next bit
+				if (fPrint && fBitWise) {
+					PrintNumHex(bitVal, 0, 0);
+				}
+				if (!lsbFirst) {
+					byteVal = (byteVal << 1) | ((bitVal) ? 1 : 0);
+				}
+				else {
+					byteVal = (byteVal >> 1) | ((bitVal) ? 0x80 : 0);
+				}
+				iBits++;
+				if (iBits>= 8) {
+					if (fPrint) {
+						if (!fBitWise) {
+							PrintNumHex(byteVal, ' ', 2);
+						}
+						else {
+							PrintChar(' ');
+						}
+					}
+					iBits = 0;
+					byteVal = 0;
+					byteCount++;
+				}
+			}
+			else {
+				break;
+			}
+		}
+		else { // 2T
+			// Next bit = opposite of current bit
+			bitVal = (bitVal) ? 0 : 1;
+			if (fDoubleInvertedBits) {
+				if (fSecondBit) {
+					if (bitVal == prevBitVal) {
+						break; // no DoubleInvertedBits
+					}
+					fSecondBit = false;
+				}
+				else {
+					prevBitVal = bitVal;
+					fSecondBit = true;
+					continue; // only second bit is used for value
+				}
+			}
+			// Return next bit
+			if (fPrint && fBitWise) {
+					PrintNumHex(bitVal, 0, 0);
+			}
+			if (!lsbFirst) {
+				byteVal = (byteVal << 1) | ((bitVal) ? 1 : 0);
+			}
+			else {
+				byteVal = (byteVal >> 1) | ((bitVal) ? 0x80 : 0);
+			}
+			iBits++;
+			if (iBits>=8) {
+				if (fPrint) {
+					if (!fBitWise) {
+						PrintNumHex(byteVal, ' ', 2);
+					}
+					else {
+						PrintChar(' ');
+					}
+				}
+				iBits = 0;
+				byteVal = 0;
+				byteCount++;
+			}
+		}
+	}
+	if ((x < xEnd - 3) && (byteCount < 8)) {
+		return -byteCount;
+	}
+
+	if (iBits > 0) {
+		if (fPrint && !fBitWise) {
+			PrintNumHex(byteVal, ' ', 2);
+		}
+	}
+	return byteCount;
+}
+
 // todo: add byte/nibble length, stopBit
-void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
+void RkrPreAmbleAnalyse(boolean fBitWise, boolean fDoubleInvertedBits) {
 	uint iTimeSplitPulse = (pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 3]) / 2; //max Short + min long /2
 	uint iTimeSplitSpace = (pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2]) / 2; //max Short + min long / 2
 	uint xEnd = Ook.iTimeEnd;
 	boolean isLongPreamblePulse = pulseSpaceMicros[Ook.iTime + 3] > iTimeSplitPulse;
 	boolean isLongPreambleSpace = pulseSpaceMicros[Ook.iTime + 4] > iTimeSplitSpace;
-	boolean isLongPrev;
 	uint iPreamble = 0;
 	uint iBits = 0;
-	byte	byteVal= 0;
-	byte prevBit;
 	//uint	byteValMSB= 0;
 	uint x;
 
@@ -118,57 +248,16 @@ void RkrPreAmbleAnalyse(boolean fBitWise, boolean fSkipEven) {
 	boolean isLongPreamble = isLongPreamblePulse && isLongPreambleSpace;
 	uint iTimeSplit = max(iTimeSplitPulse, iTimeSplitSpace);
 	Serial.print(F("!PreAmble"));
-	Serial.print((fSkipEven) ? F("Skip ") : ((iSync > 0) ? F("Sync ") : ((isLongPreamble) ? F("Long "): F("Short "))));
+	Serial.print((fDoubleInvertedBits) ? F("Skip ") : ((iSync > 0) ? F("Sync ") : ((isLongPreamble) ? F("Long "): F("Short "))));
 
 	PrintNum(iPreamble, 0, 1);
 	PrintNum(pulseSpaceMicros[Ook.iTime] - iPreamble - iSync, ' ', 1);
-	prevBit = (isLongPreamble) ? 1: 0; // last long was a 1
-	isLongPrev = (isLongPreamble) ? false: true; // stop on short that we skipped
 	PrintChar(':');
-
-	// assume rest is manchester encoded
-	for (;x <= xEnd-1; x++) {
-		boolean isLong = pulseSpaceMicros[x] > iTimeSplit;
-		if ((!isLong && !isLongPrev) || isLong) {  // double short or long
-			if (isLong) {
-				prevBit = (prevBit) ? 0 : 1;
-			}
-			if ((!fSkipEven) || ((iBits%2) == 1)) {
-				if (fSkipEven) {
-					byteVal = (byteVal >> 1) | (prevBit ? 0x80 : 0);
-				}
-				else {
-					byteVal = (byteVal << 1) | (prevBit ? 1 : 0);
-				}
-				if (fBitWise) {
-					PrintNumHex(prevBit, ((fSkipEven && (iBits == 1)) || (iBits == 0)) ? ' ' : 0, 0);
-				}
-			}
-			iBits++;
-			if ((!fSkipEven && (iBits >=8)) || (iBits >= 16)) {
-				iBits = 0;
-				if (!fBitWise) {
-					if (fSkipEven) { // swap nibbles
-						byte bbyteVal = ((byteVal) & 0x0F) & ((byteVal >> 4) & 0x0F);
-						PrintNumHex(bbyteVal, ' ', 2);
-					}
-					else {
-						PrintNumHex(byteVal, ' ', 2);
-					}
-				}
-				byteVal = 0;
-			}
-		}
-		isLongPrev = isLong;
+	if (RkrManchesterAnalyse(false, fBitWise, fDoubleInvertedBits) > 0) {
+		RkrManchesterAnalyse(true, fBitWise, fDoubleInvertedBits);
 	}
-	if ((!fBitWise) && (byteVal != 0)) {
-		if (fSkipEven) { // swap nibbles
-			PrintNumHex(((byteVal) & 0x0F), ' ', 1);
-			PrintNumHex(((byteVal >> 4) & 0x0F), ' ', 1);
-		}
-		else {
-			PrintNumHex(byteVal, ' ', 2);
-		}
+	else {
+		PrintNum(-1*RkrManchesterAnalyse(false, fBitWise, fDoubleInvertedBits), 0, 1);
 	}
 	PrintTermRaw();
 }
@@ -465,7 +554,7 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 	}
 	else {
 #if 1
-		if (hash != Ook.lastHash && xEnd-Ook.iTime < Ook.lastLength) {
+		if (hash != Ook.lastHash && abs(xEnd-Ook.iTime - Ook.lastLength) > 4) {
 			return;
 		}
 #endif
@@ -583,14 +672,12 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 	}
 	// Preamble experiment 2,2,3
 	if ((Ook_NrTimeRanges(ixPulseSpace)>=3) && ((Ook_NrTimeRanges(ixPulse)>=2) && (Ook_NrTimeRanges(ixSpace)>=2))) { // preamble/manchester like
+		RkrPreAmbleAnalyse(false, false);
 		if (pulseSpaceMicros[iTime] <= 180) {
-			RkrPreAmbleAnalyse(false, false);
 			RkrPreAmbleAnalyse(true, false);
 		}
 		else {// oregon scientific v2 protocol?
-			RkrPreAmbleAnalyse(false, false);
-			//RkrPreAmbleAnalyse(false, true); does not work!
-			//RkrPreAmbleAnalyse(true, true);
+			RkrPreAmbleAnalyse(false, true);
 		}
 	}
 	// 1,2,2 or 2,1,2 signals: double min/max pairs...
@@ -703,6 +790,7 @@ void PrintPulseSpaceTimingEnd() {
  \*********************************************************************************************/
 void PrintPulseSpaceTimings(ulong Hash, boolean fIsRf) {
 	digitalWrite(MonitorLedPin,HIGH);           // LED aan als er iets verwerkt wordt
+	Ook.nRepeats = 0;
 	// RAWSIGNAL_MULTI
 	for(int psmStart = 0; (pulseSpaceMicros[psmStart] != 0) && (psmStart < RAW_BUFFER_SIZE); psmStart = psmStart + pulseSpaceMicros[psmStart] + 2) {
 		PrintPulseSpaceTiming(psmStart, fIsRf);
