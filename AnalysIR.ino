@@ -293,6 +293,7 @@ void rxIR3_Interrupt_Handler() { //important to use few instruction cycles here
   //just save LSB as we are measuring values of 20-50 uSecs only - so only need a byte (LSB)
 }
 #endif
+#endif // NODO_DUE
 //see *** note 16 in README
 void reportFreeRAM(unsigned int f) { //report freeRam to host if less than f or f is false
   extern int __heap_start, *__brkval;
@@ -304,4 +305,3 @@ void reportFreeRAM(unsigned int f) { //report freeRam to host if less than f or 
     Serial.println(F("!"));//send line as comment
   }
 }
-#endif // NODO_DUE

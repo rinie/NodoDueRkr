@@ -50,38 +50,7 @@
 #include <avr/pgmspace.h>
 #include "NodoDueRkr.h"
 
-/**************************************************************************************************************************\
-*  Nodo Event            = TTTTUUUUCCCCCCCC1111111122222222       -> T=Type, U=Unit, 1=Par-1, 2=Par-2
-\**************************************************************************************************************************/
-
-// strings met vaste tekst naar PROGMEM om hiermee RAM-geheugen te sparen.
-prog_char PROGMEM Text_01[] = "NodoDueRkr based on Nodo Due (c)2011 P.K.Tonkes.";
-prog_char PROGMEM Text_02[] = "License: GNU General Public License.";
-prog_char PROGMEM Text_03[] = "Line=";
-prog_char PROGMEM Text_06[] = "Unknown command: ";
-prog_char PROGMEM Text_07[] = "pulseSpaceMicros=";
-prog_char PROGMEM Text_08[] = "Queue=Out, ";
-prog_char PROGMEM Text_09[] = "Queue=In, ";
-prog_char PROGMEM Text_10[] = "TimeStamp=";
-prog_char PROGMEM Text_11[] = "Direction=";
-prog_char PROGMEM Text_12[] = "Source=";
-prog_char PROGMEM Text_13[] = "ThisUnit=";
-prog_char PROGMEM Text_14[] = "Event=";
-prog_char PROGMEM Text_15[] = "Version=";
-prog_char PROGMEM Text_16[] = "Action=";
-
 #if 1
-#if 0
-#define VALUE_OFF 0
-#define VALUE_SOURCE_IR 3
-#define VALUE_SOURCE_IR_RF 4
-#define VALUE_SOURCE_RF 5
-#define VALUE_DIRECTION_INPUT 17
-#define VALUE_DIRECTION_OUTPUT 18
-#define VALUE_ON 28 // Deze waarde MOET groter dan 16 zijn.
-#define CMD_KAKU 92
-#define CMD_KAKU_NEW 93
-#else
 #define VALUE_OFF 0
 #define VALUE_ON 1 // Deze waarde MOET groter dan 16 zijn.
 #define VALUE_SOURCE_IR 2
@@ -96,29 +65,14 @@ prog_char PROGMEM Cmd_1[]="On";
 prog_char PROGMEM Cmd_2[]="IR";
 prog_char PROGMEM Cmd_3[]="IR&RF";
 prog_char PROGMEM Cmd_4[]="RF";
-//prog_char PROGMEM Cmd_6[]="Serial";
-//prog_char PROGMEM Cmd_16[]="Direction";
 prog_char PROGMEM Cmd_5[]="Input";
 prog_char PROGMEM Cmd_6[]="Output";
 // tabel die refereert aan de commando strings
 PROGMEM const char *CommandText_tabel[]={
-  Cmd_0 ,Cmd_1 ,Cmd_2 ,Cmd_3 ,Cmd_4 ,Cmd_5 ,Cmd_6 /*,Cmd_7 ,Cmd_8 ,Cmd_9 ,
-  Cmd_10,Cmd_11,Cmd_12,Cmd_13,Cmd_14,Cmd_15,Cmd_16,Cmd_17,Cmd_18,Cmd_19,
-  Cmd_20,Cmd_21,Cmd_22,Cmd_23,Cmd_24,Cmd_25,Cmd_26,Cmd_27,Cmd_28,Cmd_29,
-  Cmd_30,Cmd_31,Cmd_32,Cmd_33,Cmd_34,Cmd_35,Cmd_36,Cmd_37,Cmd_38,Cmd_39,
-  Cmd_40,Cmd_41,Cmd_42,Cmd_43,Cmd_44,Cmd_45,Cmd_46,Cmd_47,Cmd_48,Cmd_49,
-  Cmd_50,Cmd_51,Cmd_52,Cmd_53,Cmd_54,Cmd_55,Cmd_56,Cmd_57,Cmd_58,Cmd_59,
-  Cmd_60,Cmd_61,Cmd_62,Cmd_63,Cmd_64,Cmd_65,Cmd_66,Cmd_67,Cmd_68,Cmd_69,
-  Cmd_70,Cmd_71,Cmd_72,Cmd_73,Cmd_74,Cmd_75,Cmd_76,Cmd_77,Cmd_78,Cmd_79,
-  Cmd_80,Cmd_81,Cmd_82,Cmd_83,Cmd_84,Cmd_85,Cmd_86,Cmd_87,Cmd_88,Cmd_89,
-  Cmd_90,Cmd_91,Cmd_92,Cmd_93,Cmd_94,Cmd_95,Cmd_96,Cmd_97,Cmd_98,Cmd_99,
-  Cmd_100,Cmd_101 */};
+  Cmd_0 ,Cmd_1 ,Cmd_2 ,Cmd_3 ,Cmd_4 ,Cmd_5 ,Cmd_6};
 #define COMMAND_MAX 7 // aantal commando's (dus geteld vanaf 0)
 #endif
 
-#else
-
-#endif
 
 // Declaratie aansluitingen I/O-pennen op de Arduino
 // D0 en D1 kunnen niet worden gebruikt. In gebruik door de FTDI-chip voor seriele USB-communiatie (TX/RX).

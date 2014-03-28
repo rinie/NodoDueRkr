@@ -187,22 +187,27 @@ void PrintWelcome(void)
   PrintTerm();
   PrintLine();
 
-  PrintText(Text_01);
-  PrintTerm();
 
-  PrintText(Text_02);
+  Serial.print(F("NodoDueRkr (c)2011-2014 Rinie Kervel."));
   PrintTerm();
-
-  PrintText(Text_15);
+  Serial.print(F("based on Nodo Due (c)2011 P.K.Tonkes."));
+  PrintTerm();
+  Serial.print(F("License: GNU General Public License."));
+  PrintTerm();
+  Serial.print(F("Version="));
   PrintValue(settings.Version/100);
   PrintChar('.');
   PrintValue((settings.Version%100)/10);
   PrintChar('.');
   PrintValue(settings.Version%10);
-  PrintChar(',');
-  PrintChar(' ');
-  PrintText(Text_13);
-  PrintValue(settings.Unit);
+  PrintChar('.');
+  PrintTerm();
+  reportFreeRAM(0xFFFF);
+  Serial.print(F("BaudRate="));
+  Serial.print(settings.BaudRate,DEC);
+  PrintTerm();
+  Serial.print(F("Mode(NodoDueRkr/Lirc/AnalysIR):"));
+  Serial.print(((settings.Mode == omNodoDueRkr) ? F("NodoDueRkr") : ((settings.Mode == omLirc) ? F("Lirc") : F("AnalysIR"))));
   PrintTerm();
 	//Serial.print("rawsignalget; on");
   PrintLine();

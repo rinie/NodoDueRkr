@@ -27,12 +27,11 @@ struct OokProperties {
 	uint iTime; // psmIndexStart: index in pulseSpaceMicros array for pulse/space times
 	uint iTimeEnd; //  xEnd / pulseSpaceMicros[psmIndexStart] + psmIndexStart
 	uint iTimeRange[3];// pulse, space, pulse + space
-#if 1
+		// repeated signal detection:
 	ulong lastHash;
 	uint lastLength;
 	ulong lastTotalTime;
 	byte nRepeats;
-#endif
 } Ook;
 
 #define Ook_NrTimeRanges(x)  (pulseSpaceMicros[Ook.iTimeRange[x]] / 2)
@@ -42,8 +41,6 @@ void PrintDash(void)
   PrintChar('-');
   }
 
-#undef RKRMINMAX_VERBOSE
-#define RKRRANGEANALYSE_VERBOSE
 void PrintComma(void)
   {
   Serial.print(F(", "));
@@ -319,7 +316,7 @@ void RkrSyncPulseSpaceAnalyse(boolean fBitWise) {
 }
 
 /*
- * RkrSyncPulseSpaceAnalyse
+ * RkrTimeRangeAnalyse
  *
  * Look in the signal for the number of Pulse/Space and Pulse+Space timeranges
  * Used for rounding the signal.
@@ -334,11 +331,10 @@ byte RkrTimeRangeAnalyse() {
 	uint cSpaceRanges = pulseSpaceMicros[iTimeRangeSpace]/2;
 	uint cPulseSpaceRanges = pulseSpaceMicros[iTimeRangePulseSpace]/2;
 	uint iMatchRanges = 0;
-#ifdef RKRRANGEANALYSE_VERBOSE
+
 	PrintNum(cPulseRanges, 0, 1);
 	PrintNum(cSpaceRanges, ',', 1);
 	PrintNum(cPulseSpaceRanges, ',', 1);
-#endif
 	if (cPulseRanges <= 1 || cSpaceRanges <= 1) {
 			return 2; // Pulse Or Space single range: don't bother just use pulse+space length
 	}
@@ -348,11 +344,7 @@ byte RkrTimeRangeAnalyse() {
 		for (uint iSpace = iTimeRangeSpace + 1; iSpace <= iTimeRangeSpace + pulseSpaceMicros[iTimeRangeSpace]; iSpace += 2) {
 			int MinSpace = pulseSpaceMicros[iSpace];
 			int MaxSpace = pulseSpaceMicros[iSpace + 1];
-#if 0
-			PrintNum(MinSpace, ',', 1);
-			PrintNum(abs((MinPulse - MinSpace)), ',', 1);
-			PrintNum(abs((MaxPulse - MaxSpace)), ',', 1);
-#endif
+
 			// pulse length same range as space length?
 			if (((abs((MinPulse - MinSpace))) < 100) && (abs(((MaxPulse - MaxSpace))) <100)) {
 				pulseSpaceMicros[iPulse] = min(MinPulse, MinSpace);
@@ -363,9 +355,7 @@ byte RkrTimeRangeAnalyse() {
 			}
 		}
 	}
-#ifdef RKRRANGEANALYSE_VERBOSE
 	PrintNum(iMatchRanges, ',', 1);
-#endif
 	// ? P+S constant: don't print p+s
 	return (cPulseSpaceRanges <= 1) ? 3: 1;
 }
@@ -528,11 +518,11 @@ int RkrPrintTimeRangeStats(byte ixPs, uint StartTime, uint MinTime, uint MaxTime
 		PrintTermRaw();
 
 		Serial.print((ixPs == ixPulseSpace) ? F("!RawP+S") : ((ixPs== ixPulse)? F("!RawP  "):F("!RawS  ")));
-		PrintNum(StartTime, ' ', 4); // start space/preamble
+		PrintNum(count, ' ', 3);
 		PrintNum(MinTime, ',', 4);
 		PrintNum(MaxTime, ',', 4);
 		PrintNum(MaxTime-MinTime, ',', 4);
-		PrintNum(count, ',', 4);
+		PrintNum(StartTime, ',', 4); // start space/preamble
 		PrintComma();
 		PrintValue(hash);
 		RkrTimeRange(MinTime, MaxTime, ixPs); // // Pulse + Space
@@ -558,7 +548,7 @@ int RkrCheckRepeatedPackage(uint iTime, boolean fIsRf) {
 	for(uint x=1+Ook.iTime;x<=xEnd;x++) {
 		totalMicros += pulseSpaceMicros[x];
 	}
-	hash = AnalyzeRawSignal(Ook.iTime); // original nodo due hash
+	hash = RawSignal_2_32bit(Ook.iTime, false); // original nodo due hash
 	if (Ook.iTime <= 0) { // first signal/no repetition yet
 		Ook.nRepeats = 0;
 		rc = 0;
@@ -635,11 +625,11 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 		return;
 	}
 	hash = AnalyzeRawSignal(Ook.iTime);
+	Serial.print(fIsRf ? F("!Rf") : F("!Ir"));
 	if (Ook.nRepeats > 0) {
-			Serial.print(fIsRf ? F("!Rf") : F("!Ir"));
-			Serial.print(F("* "));
+			Serial.print(F("*   "));
 			// count
-			PrintNum(pulseSpaceMicros[Ook.iTime],' ', 2);
+			PrintNum(pulseSpaceMicros[Ook.iTime],' ', 3);
 			// repeats
 			PrintNum(Ook.nRepeats+1,',', 2);
 			// inter message time
@@ -651,8 +641,9 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 			//PrintEventCode(AnalyzeRawSignal(0));
 			//PrintTerm();
 			//PrintTermRaw();
-			Serial.print(fIsRf ? F("!Rf") : F("!Ir"));
-			Serial.print(F("? "));
+			Serial.print(F("?   "));
+			// count
+			PrintNum(pulseSpaceMicros[Ook.iTime],',', 4);
 			// inter message time
 			PrintNum(psStartSignalMillis - psStartSignalMillisLast,0, 5);
 			psStartSignalMillisLast = psStartSignalMillis;
@@ -664,18 +655,17 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 				return;
 			}
 	#endif
-			Serial.print(fIsRf ? F("!Rf") : F("!Ir"));
 			if (hash == Ook.lastHash && xEnd-Ook.iTime == Ook.lastLength) {
-				Serial.print(F("+ ")); // last = current, so likely good match!
+				Serial.print(F("+   ")); // last = current, so likely good match!
 			}
 			else {
-				Serial.print(F("- "));
+				Serial.print(F("-   "));
 			}
+			// count
+			PrintNum(pulseSpaceMicros[Ook.iTime],',', 4);
 			// intra message
 			PrintNum(pulseSpaceMicros[xEnd+1],0, 5);
 		}
-		// count
-		PrintNum(pulseSpaceMicros[Ook.iTime],',', 2);
 	}
 #if 1
 	Ook.lastHash = hash;
