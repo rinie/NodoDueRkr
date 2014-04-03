@@ -206,8 +206,8 @@ void PrintWelcome(void)
   Serial.print(F("BaudRate="));
   Serial.print(settings.BaudRate,DEC);
   PrintTerm();
-  Serial.print(F("Mode(NodoDueRkr/Lirc/AnalysIR):"));
-  Serial.print(((settings.Mode == omNodoDueRkr) ? F("NodoDueRkr") : ((settings.Mode == omLirc) ? F("Lirc") : F("AnalysIR"))));
+  Serial.print(F("Mode(NodoDueRkr/LIRC/AnalysIR):"));
+  Serial.print(((settings.Mode == omNodoDueRkr) ? F("NodoDueRkr") : ((settings.Mode == omLirc) ? F("LIRC") : F("AnalysIR"))));
   PrintTerm();
 	//Serial.print("rawsignalget; on");
   PrintLine();

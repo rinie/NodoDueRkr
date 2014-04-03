@@ -1,5 +1,5 @@
 /*
- * NoduDueRkr IR and OOK RF receival
+ * NodoDueRkr IR and OOK RF receival
  * Based on Nodo Due 1.2.1 by Paul Tonkes
  *
  * (c) 2011-2014 Rinie Kervel
@@ -152,11 +152,11 @@ typedef enum OUTPUTMODE {
 struct Settings
   {
   int     Version;
+  uint	SizeofSettings;
   byte	Mode;
   ulong	BaudRate;
   byte    AnalyseSharpness;
   int     AnalyseTimeOut;
-  byte    Unit;
   byte    Display;
   byte    TransmitPort;
   byte    TransmitRepeat;
@@ -164,7 +164,6 @@ struct Settings
   byte    WaitFreeRF_Delay;
   boolean SendBusy;
   boolean WaitBusy;
-  boolean EnableSound; // RKR kill sound
   }settings;
 
 // timers voor verwerking op intervals

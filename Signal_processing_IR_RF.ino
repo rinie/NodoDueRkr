@@ -44,7 +44,7 @@ ulong AnalyzeRawSignal(uint psmIndexStart)
       	break;
  	}
   if (!Code) { // Geen Nodo, KAKU of NewKAKU code. Genereer uit het onbekende signaal een (vrijwel) unieke 32-bit waarde uit.
-     Code=RawSignal_2_32bit(psmIndexStart, false);
+     Code=RawSignal_2_32bit(psmIndexStart, false, false);
   }
   return Code;
   }
@@ -85,7 +85,7 @@ ulong RawSignal_2_Nodo(uint psmIndexStart)
  * meegenomen zodat deze functie geschikt is voor PWM, PDM en Bi-Pase modulatie.
  * LET OP: Het betreft een unieke hash-waarde zonder betekenis van waarde.
  \*********************************************************************************************/
-ulong RawSignal_2_32bit(uint psmIndexStart, bool fPrint) {
+ulong RawSignal_2_32bit(uint psmIndexStart, bool fRkrTimeRangeStats, bool fPrint) {
 	int x,y,z;
 	int Counter_pulse=0,Counter_space=0;
 	int MinPulse=0xffff;
@@ -186,10 +186,25 @@ ulong RawSignal_2_32bit(uint psmIndexStart, bool fPrint) {
 	}
 	while (x<xEnd);
 
-	if (fPrint) { // RKR print Pulse/Space stats
-		RkrPrintTimeRangeStats(ixPulse, pulseSpaceMicros[psmIndexStart+1], MinPulseP, MaxPulse, Counter_pulse, CodeP);
-		RkrPrintTimeRangeStats(ixSpace, pulseSpaceMicros[psmIndexStart+2], MinSpaceP, MaxSpace, Counter_space, CodeS);
-		RkrPrintTimeRangeStats(ixPulseSpace, pulseSpaceMicros[psmIndexStart+1] + pulseSpaceMicros[psmIndexStart+2], MinPulseSpace, MaxPulseSpace, Counter_pulse + Counter_space, CodeS^CodeP);
+	if (fRkrTimeRangeStats) { // RKR print Pulse/Space stats, to my OokTimeRange code...
+		RkrTimeRangeStats(ixPulse,
+			pulseSpaceMicros[psmIndexStart+1],
+			MinPulseP, MaxPulse,
+			Counter_pulse,
+			CodeP,
+			fPrint);
+		RkrTimeRangeStats(ixSpace,
+			pulseSpaceMicros[psmIndexStart+2],
+			MinSpaceP, MaxSpace,
+			Counter_space,
+			CodeS,
+			fPrint);
+		RkrTimeRangeStats(ixPulseSpace,
+			pulseSpaceMicros[psmIndexStart+1] + pulseSpaceMicros[psmIndexStart+2],
+			MinPulseSpace, MaxPulseSpace,
+			Counter_pulse + Counter_space,
+			CodeS^CodeP,
+			fPrint);
 	}
 
 	if(Counter_pulse>=1 && Counter_space<=1) {

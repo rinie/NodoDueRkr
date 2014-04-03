@@ -57,9 +57,9 @@ unsigned long SetEventType(unsigned long Event, byte Type)
  * Bouw een Code op uit commando, data1 en data2
  \*********************************************************************************************/
 unsigned long command2event(int Command, byte Par1, byte Par2)
-    {
+    { int Unit =UNIT;
     return ((unsigned long)SIGNAL_TYPE_NODO)<<28   |
-           ((unsigned long)settings.Unit)<<24            |
+           ((unsigned long)Unit)<<24            |
            ((unsigned long)Command)<<16           |
            ((unsigned long)Par1)<<8               |
             (unsigned long)Par2;

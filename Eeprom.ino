@@ -48,12 +48,10 @@ void(*Reset)(void)=0;                               //reset functie op adres 0
  \*********************************************************************************************/
 void ResetFactory(void)
   {
-  settings.EnableSound        = ENABLE_SOUND;
-
   settings.Version            = VERSION;
+  settings.SizeofSettings = sizeof(settings);
   settings.Mode	= omNodoDueRkr;
   settings.BaudRate				= BAUD;
-  settings.Unit               = UNIT;
   settings.Display            = DISPLAY_RESET;
   settings.AnalyseSharpness   = 50;
   settings.AnalyseTimeOut     = SIGNAL_TIMEOUT_IR;
@@ -65,13 +63,16 @@ void ResetFactory(void)
   settings.WaitFreeRF_Delay   = 0;
 
   SaveSettings();
-//  FactoryEventlist();
+  Serial.print(F("FactoryReset"));
+  PrintTerm();
   delay(500);// kleine pauze, anders kans fout bij seriële communicatie
   Reset();
   }
 
 void LoadSettingsFromEeprom(void) {
-  LoadSettings();      // laad alle settings zoals deze in de EEPROM zijn opgeslagen
+  	LoadSettings();      // laad alle settings zoals deze in de EEPROM zijn opgeslagen
 
-  if(settings.Version!=VERSION)ResetFactory(); // Als versienummer in EEPROM niet correct is, dan een ResetFactory.
+  	if((settings.Version!=VERSION) || (settings.SizeofSettings!=sizeof(settings))) {
+    	ResetFactory(); // Als versienummer in EEPROM niet correct is, dan een ResetFactory.
+	}
 }
