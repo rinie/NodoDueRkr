@@ -266,7 +266,7 @@ void RkrPreAmbleAnalysis(boolean fBitWise, boolean fDoubleInvertedBits) {
 	if (iManchester <= 0 && iManchester > -16) {
 		return;
 	}
-	Serial.print(F("!PreAmble"));
+	PrintStartRaw(F("PreAmble"));
 	Serial.print((fDoubleInvertedBits) ? F("Skip ") : ((iSync > 0) ? F("Sync ") : ((isLongPreamble) ? F("Long "): F("Short "))));
 
 	PrintNum(iPreamble, 0, 1);
@@ -284,7 +284,7 @@ void RkrPreAmbleAnalysis(boolean fBitWise, boolean fDoubleInvertedBits) {
 /*
  * RkrPulseDistanceAnalysis
  *
- *	P+S has 2 timings, P is constant, S is constant
+ *	P+S has 2 timings, P is constant or S is constant, use P+S for most reliable timings
  */
 void RkrPulseDistanceAnalysis(boolean fBitWise, boolean fSyncPs) {
 	uint iTimeSplit = (pulseSpaceMicros[Ook.iTimeRange[ixPulseSpace] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixPulseSpace] + 3]) / 2; // max short pulse + space
@@ -294,14 +294,14 @@ void RkrPulseDistanceAnalysis(boolean fBitWise, boolean fSyncPs) {
 	uint x = 1 + Ook.iTime;
 	uint xStep = 2;
 	if (fSyncPs) {
-		Serial.print(F("!SyncP+S"));
+		PrintStartRaw(F("SyncP+S"));
 		PrintNum(iTimeSplit, ' ', 4);
 		PrintChar(':');
 		x += 2;
 	}
 	else {
 		iTimeSplit = (pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 3]) / 2; // max short pulse + space
-		Serial.print(F("!-      "));
+		PrintStartRaw(F("-      "));
 		PrintNum(iTimeSplit, ' ', 4);
 		PrintChar(':');
 	}
@@ -344,34 +344,43 @@ byte RkrTimeRangeAnalysis() {
 	uint cPulseRanges = pulseSpaceMicros[iTimeRangePulse]/2;
 	uint cSpaceRanges = pulseSpaceMicros[iTimeRangeSpace]/2;
 	uint cPulseSpaceRanges = pulseSpaceMicros[iTimeRangePulseSpace]/2;
+	byte rv;
 	uint iMatchRanges = 0;
 
 	PrintNum(cPulseRanges, 0, 1);
 	PrintNum(cSpaceRanges, ',', 1);
 	PrintNum(cPulseSpaceRanges, ',', 1);
 	if (cPulseRanges <= 1 || cSpaceRanges <= 1) {
-			return 2; // Pulse Or Space single range: don't bother just use pulse+space length
+		rv = 2; // Pulse Or Space single range: don't bother just use pulse+space length
 	}
-	for (uint iPulse = iTimeRangePulse + 1; iPulse <= iTimeRangePulse + pulseSpaceMicros[iTimeRangePulse]; iPulse += 2) {
-		int MinPulse = pulseSpaceMicros[iPulse];
-		int MaxPulse = pulseSpaceMicros[iPulse + 1];
-		for (uint iSpace = iTimeRangeSpace + 1; iSpace <= iTimeRangeSpace + pulseSpaceMicros[iTimeRangeSpace]; iSpace += 2) {
-			int MinSpace = pulseSpaceMicros[iSpace];
-			int MaxSpace = pulseSpaceMicros[iSpace + 1];
+	else {
+		for (uint iPulse = iTimeRangePulse + 1; iPulse <= iTimeRangePulse + pulseSpaceMicros[iTimeRangePulse]; iPulse += 2) {
+			int MinPulse = pulseSpaceMicros[iPulse];
+			int MaxPulse = pulseSpaceMicros[iPulse + 1];
+			for (uint iSpace = iTimeRangeSpace + 1; iSpace <= iTimeRangeSpace + pulseSpaceMicros[iTimeRangeSpace]; iSpace += 2) {
+				int MinSpace = pulseSpaceMicros[iSpace];
+				int MaxSpace = pulseSpaceMicros[iSpace + 1];
 
-			// pulse length same range as space length?
-			if (((abs((MinPulse - MinSpace))) < 100) && (abs(((MaxPulse - MaxSpace))) <100)) {
-				pulseSpaceMicros[iPulse] = min(MinPulse, MinSpace);
-				pulseSpaceMicros[iSpace] = min(MinPulse, MinSpace);
-				pulseSpaceMicros[iPulse+1] = max(MaxPulse, MaxSpace);
-				pulseSpaceMicros[iSpace+1] = max(MaxPulse, MaxSpace);
-				iMatchRanges++;
+				// pulse length same range as space length?
+				if (((abs((MinPulse - MinSpace))) < 100) && (abs(((MaxPulse - MaxSpace))) <100)) {
+					pulseSpaceMicros[iPulse] = min(MinPulse, MinSpace);
+					pulseSpaceMicros[iSpace] = min(MinPulse, MinSpace);
+					pulseSpaceMicros[iPulse+1] = max(MaxPulse, MaxSpace);
+					pulseSpaceMicros[iSpace+1] = max(MaxPulse, MaxSpace);
+					iMatchRanges++;
+				}
 			}
 		}
+		PrintNum(iMatchRanges, ',', 1);
+		// ? P+S constant: don't print p+s
+		rv = (cPulseSpaceRanges <= 1) ? 3: 1;
 	}
-	PrintNum(iMatchRanges, ',', 1);
-	// ? P+S constant: don't print p+s
-	return (cPulseSpaceRanges <= 1) ? 3: 1;
+
+	// now check Sync: start out of range from normal timings
+	// todo
+	// check preamble: repeated start P/S signals, maybe Sync after that of just ManchesterEncoding...
+	// todo
+	return rv;
 }
 
 void RkrTimeRangeReplaceMedian(uint Min, uint Max, uint Median, byte ixPs) {
@@ -450,7 +459,7 @@ int RkrTimeRange(uint MinTime, uint MaxTime, byte ixPs, boolean fPrint) {
 			PrintNum(Ook.iTime,0, 3);
 			PrintNum(Ook.iTime + pulseSpaceMicros[Ook.iTime],',', 3);
 			PrintNum(iTimeRange,',', 3);
-			Serial.print(F("!RkrTimeRange Overflow!\n"));
+			PrintLnStartRaw(F("RkrTimeRange Overflow"));
 		}
 		return 0;
 	}
@@ -536,7 +545,7 @@ int RkrTimeRangeStats(byte ixPs, uint StartTime, uint MinTime, uint MaxTime, uin
 		if (fPrint) {
 			PrintTermRaw();
 
-			Serial.print((ixPs == ixPulseSpace) ? F("!RawP+S") : ((ixPs== ixPulse)? F("!RawP  "):F("!RawS  ")));
+			PrintStartRaw((ixPs == ixPulseSpace) ? F("RawP+S") : ((ixPs== ixPulse)? F("RawP  "):F("RawS  ")));
 			PrintNum(count, ' ', 3);
 			PrintNum(MinTime, ',', 4);
 			PrintNum(MaxTime, ',', 4);
@@ -631,7 +640,7 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 	if ((Ook.iTime > RAW_BUFFER_SIZE+2) || (Ook.iTimeEnd > RAW_BUFFER_SIZE+2)) {
 		PrintNum(Ook.iTime,0, 3);
 		PrintNum(Ook.iTimeEnd,',', 3);
-		Serial.print(F("!PrintPulseSpaceTiming Overflow\n!"));
+		PrintLnStartRaw(F("PrintPulseSpaceTiming Overflow"));
 		return;
 	}
 	i = 0;
@@ -645,7 +654,7 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 		return;
 	}
 	hash = AnalyzeRawSignal(Ook.iTime);
-	Serial.print(fIsRf ? F("!Rf") : F("!Ir"));
+	PrintStartRaw(fIsRf ? F("Rf") : F("Ir"));
 	if (Ook.nRepeats > 0) {
 			Serial.print(F("*   "));
 			// count
@@ -755,7 +764,7 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 		}
 		if (i == 0) {
 			if (pulseSpaceMicros[iTimeRange] != 0) {
-				Serial.print(F("!Rounded "));
+				PrintStartRaw(F("Rounded "));
 				iPrintPulseAndSpaceRounded = RkrTimeRangeAnalysis();
 				RkrTimeRangePsReplaceMedian();
 				PrintTermRaw();
@@ -888,22 +897,19 @@ void PrintPulseSpaceTiming(uint iTime, boolean fIsRf) {
 		PrintPulseSpaceTimingJeeLabsOok(iTime);
 #endif
 	}
-	if (settings.Mode == omAnaysIR) {
-		Serial.print(F("!AnalysIr!"));
+	if (settings.Mode == omAnalysIR) {
+		PrintLnStartRaw(F("AnalysIr"));
 		PrintPulseSpaceTimingAnalysIr(iTime);
 	}
 	if (settings.Mode == omLirc) {
-		// Serial.print(F("!Avr!"));
+		// PrintLnStartRaw(F("Avr"));
 		PrintPulseSpaceTimingAvrLirc(iTime);
 		PrintTerm();
 	}
 }
 
 void PrintPulseSpaceTimingEnd() {
-	if (settings.Mode !=omLirc) {
-		Serial.print(F("!End"));
-		PrintTermRaw();
-	}
+	PrintLnStartRaw(F("End"));
 }
 
 

@@ -146,7 +146,7 @@ PROGMEM const char *CommandText_tabel[]={
 #define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar één dezelfde poort na binnenkomst van een signaal
 //****************************************************************************************************************************************
 typedef enum OUTPUTMODE {
-	omNodoDueRkr, omLirc, omAnaysIR
+	omNodoDueRkr, omLirc, omAnalysIR
 } OUTPUTMODE;
 
 struct Settings

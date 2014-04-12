@@ -300,8 +300,14 @@ void reportFreeRAM(unsigned int f) { //report freeRam to host if less than f or 
   int v;
   int freeRAM = (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
   if (freeRAM <= f) {
+#ifndef NODO_DUE // Nodo Due just uses the ReportPulses code
     Serial.print(F("!Free RAM: "));//send line as comment
     Serial.print(freeRAM);
     Serial.println(F("!"));//send line as comment
+#else
+    PrintStartRaw(F("Free RAM: "));//send line as comment
+    Serial.print(freeRAM);
+    PrintTermRaw();//send line as comment
+#endif
   }
 }

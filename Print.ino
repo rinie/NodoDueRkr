@@ -38,8 +38,18 @@ void PrintValue(ulong x)
  \*********************************************************************************************/
 void PrintLine(void)
   {
+	bool fShow = settings.Mode != omLirc;
+	bool fAnalysIRComment = settings.Mode == omAnalysIR;
+	if (!fShow) {
+		return;
+	}
+
+	if (fAnalysIRComment) { // AnalysIR comment start
+		PrintChar('!');
+	}
+
   for(byte x=1;x<=60;x++)PrintChar('*');
-  PrintTerm();
+  PrintTermRaw();
   }
 
 
@@ -172,11 +182,36 @@ void PrintTerm()
 
 void PrintTermRaw()
 {
-	#if 1 // AnalysIR comment end
+	bool fShow = settings.Mode != omLirc;
+	bool fAnalysIRComment = settings.Mode == omAnalysIR;
+	if (!fShow) {
+		return;
+	}
+
+	if (fAnalysIRComment) { // AnalysIR comment end
 		PrintChar('!');
-	#endif
+	}
 	PrintTerm();
 }
+
+void PrintStartRaw(const __FlashStringHelper *s) {
+	bool fShow = settings.Mode != omLirc;
+	bool fAnalysIRComment = settings.Mode == omAnalysIR;
+	if (!fShow) {
+		return;
+	}
+
+	if (fAnalysIRComment) { // AnalysIR comment start
+		PrintChar('!');
+	}
+	Serial.print(s);
+}
+
+void PrintLnStartRaw(const __FlashStringHelper *s) {
+	PrintStartRaw(s);
+	PrintTermRaw();
+}
+
 
  /**********************************************************************************************\
  * Print de welkomsttekst van de Nodo.
@@ -188,27 +223,24 @@ void PrintWelcome(void)
   PrintLine();
 
 
-  Serial.print(F("NodoDueRkr (c)2011-2014 Rinie Kervel."));
-  PrintTerm();
-  Serial.print(F("based on Nodo Due (c)2011 P.K.Tonkes."));
-  PrintTerm();
-  Serial.print(F("License: GNU General Public License."));
-  PrintTerm();
-  Serial.print(F("Version="));
+  PrintLnStartRaw(F("NodoDueRkr (c)2011-2014 Rinie Kervel."));
+  PrintLnStartRaw(F("based on Nodo Due (c)2011 P.K.Tonkes."));
+  PrintLnStartRaw(F("License: GNU General Public License."));
+  PrintStartRaw(F("Version="));
   PrintValue(settings.Version/100);
   PrintChar('.');
   PrintValue((settings.Version%100)/10);
   PrintChar('.');
   PrintValue(settings.Version%10);
   PrintChar('.');
-  PrintTerm();
+  PrintTermRaw();
   reportFreeRAM(0xFFFF);
-  Serial.print(F("BaudRate="));
+  PrintStartRaw(F("BaudRate="));
   Serial.print(settings.BaudRate,DEC);
-  PrintTerm();
-  Serial.print(F("Mode(NodoDueRkr/LIRC/AnalysIR):"));
+  PrintTermRaw();
+  PrintStartRaw(F("Mode(NodoDueRkr/LIRC/AnalysIR):"));
   Serial.print(((settings.Mode == omNodoDueRkr) ? F("NodoDueRkr") : ((settings.Mode == omLirc) ? F("LIRC") : F("AnalysIR"))));
-  PrintTerm();
+  PrintTermRaw();
 	//Serial.print("rawsignalget; on");
   PrintLine();
   }
