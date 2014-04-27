@@ -208,13 +208,127 @@ void setup()
   IRbit=digitalPinToBitMask(IR_ReceiveDataPin);
   IRport=digitalPinToPort(IR_ReceiveDataPin);
 
-	LoadSettingsFromEeprom();
+	LoadSettingsFromEeprom();	// store baudrate and mode in Eeprom
   Serial.begin(settings.BaudRate);  // Initialiseer de seriële poort
   IR38Khz_set();       // Initialiseet de 38Khz draaggolf voor de IR-zender.
-#ifndef AVR_LIRC
   PrintWelcome();
-#endif
   }
+
+/*
+ *	ParseArgs
+ *
+ * commands:
+ *	m mode a, l, n
+ *  b baudrate 9600, 38400, 57600, 115200 or analysIR speed
+ *  s save and reset
+ *  r factory reset?
+ *
+ * space, separators, commands and numbers
+ * autosave at eol
+ * \n\r, \r, \n as terminators
+ * ; as command separator
+ * space, tab, =, -, \, / param separator
+ *
+ * for now: command, arg, argn
+ * autosave at eol unless last is ; for second command?
+ */
+char ParseArgs() {
+	byte c=0;
+      while (Serial.available()>0) {
+			byte SerialByte=Serial.read();
+			switch(SerialByte) {
+				case '\r':
+					if (Serial.peek() == '\n') {
+						SerialByte=Serial.read();
+					}
+				case '\n':
+					return '\n';
+				case ' ':
+				case '\t':
+					break;
+				case '=':
+				case '-':
+				case '/':
+				case '\\':
+					c = SerialByte;
+					break;
+				case ';':
+					return ';';
+				default:
+					return SerialByte;
+			}
+		}
+		return c;
+}
+
+void ParseCommand() {
+	static char cmd='\0';
+	static boolean fAutoSave = true;
+	char c=ParseArgs();
+	if (c) {
+		if (!cmd) {
+			switch(c) {
+				case 'm': // mode n, l, a
+					cmd = c;
+					break;
+				case 'b':
+					cmd = c;
+					break;
+				case ';':
+					fAutoSave = false;
+					break;
+				case '\n':
+					if (fAutoSave) {
+						SaveSettingsToEepromAndReset();
+					}
+					fAutoSave=true;
+					break;
+				case 's':
+					SaveSettingsToEepromAndReset();
+					break;
+				case 'r':
+					ResetFactory();
+					break;
+				default:
+					fAutoSave=true;
+					PrintLnStartRaw(F("Usage \nmode: m n/l/a\nbaudrate b baud\nresetfactory r"));
+					break;
+			}
+		}
+		else { // cmd + arg
+			switch(cmd) {
+				case 'm': // mode n, l, a
+					switch(c) {
+						case 'n':
+							  settings.Mode	= omNodoDueRkr;
+							  settings.BaudRate = 57600; // Baudrate voor seriële communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
+							  break;
+						case 'l':
+							  settings.Mode	= omLirc;
+							  settings.BaudRate = 38400; // LIRC
+							  break;
+						case 'a':
+							  settings.Mode	= omAnalysIR;
+							  settings.BaudRate = 2000000;
+							  break;
+						case 'A':
+							  settings.Mode	= omAnalysIR;
+							  settings.BaudRate = 115200;
+							  break;
+					}
+					cmd = '\0';
+					break;
+				case 'b': // baudrate...
+					cmd = '\0';
+					break;
+				default:
+					cmd = '\0';
+			}
+			ParseCommand();
+		}
+	}
+}
+
 
 void loop()
   {
@@ -228,17 +342,10 @@ void loop()
   while(true)
     {
     // SERIAL: *************** kijk of er data klaar staat op de seriële poort **********************
-    do
-      {
-#if 1
       if(Serial.available()>0)
         {
-			byte      SerialByte=Serial.read();
-        StaySharpMillis=millis()+SHARP_TIME;
-//        SerialHold(false);
-        }
-      }while(millis()<StaySharpMillis);
-#endif
+		ParseCommand();
+	}
 	{ // RKR RawsignalGet measure repetitions
 		int psmStart = 0;
 	    //StaySharpMillis=millis()+SHARP_TIME;

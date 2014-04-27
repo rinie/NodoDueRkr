@@ -216,6 +216,8 @@ void  reportPulses() {
 }
 #endif // NODO_DUE
 #ifdef NODO_DUE // Nodo Due just uses the ReportPulses code
+#define AVR_LIRC_BINARY // undef for text debugging
+
 void  reportPulses(uint xStart, uint xEnd) {
   txBuffer[4] = 13; //init ascii decimal value for CR in tx buffer
     word len;
@@ -225,10 +227,10 @@ void  reportPulses(uint xStart, uint xEnd) {
 #ifndef AVR_LIRC_BINARY
 	Serial.println("!AnalysIr!");
 #else
-	Serial.print(F("!NodoDueRkr!"));
+	Serial.println(F("!NodoDueRkr!"));
 #endif
 	//return;
-	for(int x=xStart;x<=xEnd;x++, high = !high) {
+	for(uint x=xStart;x<=xEnd;x++, high = !high) {
 		word pulseIR = pulseSpaceMicros[x];
 		len = pulseIR;
 		overflow = had_overflow;

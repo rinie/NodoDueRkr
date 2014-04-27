@@ -46,7 +46,7 @@ void PrintComma(void)
   Serial.print(F(", "));
   }
 
-void PrintNum(uint x, char c=0, uint digits=4) {
+void PrintNum(uint x, char c, int digits) {
      // Rinie add space for small digits
      if(c) {
      	PrintChar(c);
@@ -734,7 +734,7 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 	PrintTermRaw();
 	for (i=0; i < 2; i++) {
 		//  PrintText(Text_07,false);
-		if (iPrintPulseAndSpace != 0) {
+		if ((iPrintPulseAndSpace != 0) && (settings.Mode == omNodoDueRkr)) {
 			for(int x=1+Ook.iTime;x<=xEnd;x++) {
 				if ((x - (1+Ook.iTime))%16==0) {
 						if ((x - (1+Ook.iTime))> 0) {
@@ -781,7 +781,7 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 		}
 	}
 	if (iPrintPulseAndSpace == 2) {
-		if (iPrintPulseAndSpace == 2) {
+		if ((iPrintPulseAndSpace == 2)  && (settings.Mode == omNodoDueRkr)) {
 			for(int x=1+Ook.iTime;x<=xEnd;x++) {
 				if ((x - (1+Ook.iTime))%16==0) {
 						if (((x - (1+Ook.iTime))/2)>0) {

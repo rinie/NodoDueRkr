@@ -43,6 +43,13 @@ boolean LoadSettings(void)
 
 void(*Reset)(void)=0;                               //reset functie op adres 0
 
+void SaveSettingsToEepromAndReset(void) {
+  SaveSettings();
+  delay(500);// kleine pauze, anders kans fout bij seriële communicatie
+  Reset();
+}
+
+
  /*********************************************************************************************\
  * Alle settings van de Nodo weer op default.
  \*********************************************************************************************/
@@ -62,11 +69,8 @@ void ResetFactory(void)
   settings.WaitFreeRF_Window  = 0;
   settings.WaitFreeRF_Delay   = 0;
 
-  SaveSettings();
-  Serial.print(F("FactoryReset"));
-  PrintTerm();
-  delay(500);// kleine pauze, anders kans fout bij seriële communicatie
-  Reset();
+  PrintLnStartRaw(F("FactoryReset"));
+  SaveSettingsToEepromAndReset();
   }
 
 void LoadSettingsFromEeprom(void) {
