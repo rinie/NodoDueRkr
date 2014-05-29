@@ -219,11 +219,9 @@ int RkrManchesterAnalysis(boolean fPrint, boolean fBitWise, boolean fDoubleInver
  * RkrPreAmbleAnalysis
  *
  * Signal starts with a lot of regular pulse/space timings so that the AGC gets tuned.
- * Decode this and determine if that is followed by a Sync pulse.
- *
- * If the preamble consists of long pulses/spaces it is probably Manchester Encoded
+ * Decode this
  */
-void RkrPreAmbleAnalysis(boolean fBitWise, boolean fDoubleInvertedBits) {
+int RkrPreAmbleAnalysis(void) {
 	uint iTimeSplitPulse = (pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 3]) / 2; //max Short + min long /2
 	uint iTimeSplitSpace = (pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 3]) / 2; //max Short + min long / 2
 	boolean isLongPreamblePulse = pulseSpaceMicros[Ook.iTime + 3] > iTimeSplitPulse;
@@ -250,35 +248,83 @@ void RkrPreAmbleAnalysis(boolean fBitWise, boolean fDoubleInvertedBits) {
 		}
 		iPreamble++;
  	}
+ 	return iPreamble;
+}
+
+
+/*
+ * RkrSyncAnalysis
+ * After preamble check pulse/space larger than long
+ */
+int RkrSyncAnalysis(uint xStart) {
+	uint xEnd = Ook.iTimeEnd;
+	uint x;
 	uint iSync = 0;
 	uint iTimeSplitSync = max(pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 4], pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 4]); // longer than max long
-	for (;x <= xEnd-1; x++) {
+	for (x = 1 + Ook.iTime + xStart;x <= xEnd-1; x++) {
 		if (pulseSpaceMicros[x] <= iTimeSplitSync) {
 			break;
 		}
 		iSync++;
 	}
-//	x++;
-	// old
-	boolean isLongPreamble = isLongPreamblePulse && isLongPreambleSpace;
-	uint iTimeSplit = max(iTimeSplitPulse, iTimeSplitSpace);
-	iManchester = RkrManchesterAnalysis(false, fBitWise, fDoubleInvertedBits);
-	if (iManchester <= 0 && iManchester > -16) {
-		return;
-	}
-	PrintStartRaw(F("PreAmble"));
-	Serial.print((fDoubleInvertedBits) ? F("Skip ") : ((iSync > 0) ? F("Sync ") : ((isLongPreamble) ? F("Long "): F("Short "))));
+	return iSync;
+}
 
-	PrintNum(iPreamble, 0, 1);
-	PrintNum(pulseSpaceMicros[Ook.iTime] - iPreamble - iSync, ' ', 1);
-	PrintChar(':');
-	if (iManchester > 0) {
-		RkrManchesterAnalysis(true, fBitWise, fDoubleInvertedBits);
+/*
+ * RkrPreAmbleSyncManchesterAnalysis
+ *
+ * Signal starts with a lot of regular pulse/space timings so that the AGC gets tuned.
+ * Decode this and determine if that is followed by a Sync pulse.
+ *
+ * If the preamble consists of long pulses/spaces it is probably Manchester Encoded
+ */
+int RkrPreAmbleSyncManchesterAnalysis(boolean fPrint, boolean fBitWise, boolean fDoubleInvertedBits) {
+	uint iTimeSplitPulse = (pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixPulse] + 3]) / 2; //max Short + min long /2
+	uint iTimeSplitSpace = (pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 3]) / 2; //max Short + min long / 2
+	boolean isLongPreamblePulse = pulseSpaceMicros[Ook.iTime + 3] > iTimeSplitPulse;
+	boolean isLongPreambleSpace = pulseSpaceMicros[Ook.iTime + 4] > iTimeSplitSpace;
+	uint iPreamble = RkrPreAmbleAnalysis();
+	uint iSync = RkrSyncAnalysis(iPreamble);
+	int rv = ((iPreamble > 0) ? 1 : 0);
+	rv |= ((iSync > 0) ? 2 : 0);
+
+	boolean isLongPreamble = isLongPreamblePulse && isLongPreambleSpace;
+	//uint iTimeSplit = max(iTimeSplitPulse, iTimeSplitSpace);
+	int iManchester = RkrManchesterAnalysis(false, fBitWise, fDoubleInvertedBits);
+#if 0
+	if (!fPrint) {
+		PrintStartRaw(F("ManDebug"));
+		PrintNum(iPreamble, ' ', 4);
+		PrintNum(iSync, ',', 4);
+		PrintNum(iManchester, ',', 4);
+		PrintTermRaw();
 	}
-	else {
-		PrintNum(-1*RkrManchesterAnalysis(false, fBitWise, fDoubleInvertedBits), 0, 1);
+#endif
+	if (iManchester <= 0 && iManchester > -16) {
+		return rv;
 	}
-	PrintTermRaw();
+	rv |= ((iManchester > 0) ? 4 : 0);
+	if (fPrint) {
+		if (iManchester > 7) {
+			PrintStartRaw(F("Manchester"));
+		}
+		else {
+			PrintStartRaw(F("PreAmble"));
+		}
+		Serial.print((fDoubleInvertedBits) ? F("Skip ") : ((iSync > 0) ? F("Sync ") : ((isLongPreamble) ? F("Long "): F("Short "))));
+
+		PrintNum(iPreamble, 0, 1);
+		PrintNum(pulseSpaceMicros[Ook.iTime] - iPreamble - iSync, ' ', 1);
+		PrintChar(':');
+		if (iManchester > 0) {
+			RkrManchesterAnalysis(true, fBitWise, fDoubleInvertedBits);
+		}
+		else {
+			PrintNum(-1*RkrManchesterAnalysis(false, fBitWise, fDoubleInvertedBits), 0, 1);
+		}
+		PrintTermRaw();
+	}
+	return rv;
 }
 
 /*
@@ -301,7 +347,7 @@ void RkrPulseDistanceAnalysis(boolean fBitWise, boolean fSyncPs) {
 	}
 	else {
 		iTimeSplit = (pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 2] + pulseSpaceMicros[Ook.iTimeRange[ixSpace] + 3]) / 2; // max short pulse + space
-		PrintStartRaw(F("-      "));
+		PrintStartRaw(F("PDM    "));
 		PrintNum(iTimeSplit, ' ', 4);
 		PrintChar(':');
 	}
@@ -375,7 +421,26 @@ byte RkrTimeRangeAnalysis() {
 		// ? P+S constant: don't print p+s
 		rv = (cPulseSpaceRanges <= 1) ? 3: 1;
 	}
+#if 0
+	// rv=2: P+S, rv=3 p,s, rv=1 P,S, P+S:
+	// 01
+	// 2: P=S
+	// 3: Sync
 
+	 /* Do this in RkrTimeRangeAnalysis
+	 * 0, 1, 2, 3 (00, 01, 10, 11)
+	 * Sync
+	 * PreAmble
+	 * Manchester
+	 *
+	 * More than 4: use shortest...long
+	 * Then on index: S, IntermediateSync, Gap/Trailer, Pause whatever...
+	 * newkaku 1,2,2  sync
+	 * oldkaku 2,2,1 no sync
+	 * x10 1,2,2  sync
+	 * oregonv2 2,2,3 no sync
+	*/
+#endif
 	// now check Sync: start out of range from normal timings
 	// todo
 	// check preamble: repeated start P/S signals, maybe Sync after that of just ManchesterEncoding...
@@ -656,7 +721,7 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 	hash = AnalyzeRawSignal(Ook.iTime);
 	PrintStartRaw(fIsRf ? F("Rf") : F("Ir"));
 	if (Ook.nRepeats > 0) {
-			Serial.print(F("*   "));
+			Serial.print(F("* "));
 			// count
 			PrintNum(pulseSpaceMicros[Ook.iTime],' ', 3);
 			// repeats
@@ -670,7 +735,7 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 			//PrintEventCode(AnalyzeRawSignal(0));
 			//PrintTerm();
 			//PrintTermRaw();
-			Serial.print(F("?   "));
+			Serial.print(F("? "));
 			// count
 			PrintNum(pulseSpaceMicros[Ook.iTime],',', 4);
 			// inter message time
@@ -685,10 +750,10 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 			}
 	#endif
 			if (hash == Ook.lastHash && xEnd-Ook.iTime == Ook.lastLength) {
-				Serial.print(F("+   ")); // last = current, so likely good match!
+				Serial.print(F("+ ")); // last = current, so likely good match!
 			}
 			else {
-				Serial.print(F("-   "));
+				Serial.print(F("- "));
 			}
 			// count
 			PrintNum(pulseSpaceMicros[Ook.iTime],',', 4);
@@ -763,6 +828,7 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 			PrintTerm();
 		}
 		if (i == 0) {
+#if 0
 			if (pulseSpaceMicros[iTimeRange] != 0) {
 				PrintStartRaw(F("Rounded "));
 				iPrintPulseAndSpaceRounded = RkrTimeRangeAnalysis();
@@ -778,6 +844,10 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 			else {
 				i = 2;
 			}
+#else	// disable rounded display
+			i = 2;
+			iPrintPulseAndSpace = 0;
+#endif
 		}
 	}
 	if (iPrintPulseAndSpace == 2) {
@@ -799,22 +869,52 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 		}
 		PrintTermRaw();
 	}
+	/*
+	 * P+S, pulse/Space timings equal length, manchester coding. Sync, SyncAfterPreamble P;S, P/S, P+S, Gap...
+	 * Do this in RkrTimeRangeAnalysis
+	 * 0, 1, 2, 3 (00, 01, 10, 11)
+	 * Sync
+	 * PreAmble
+	 * Manchester
+	 *
+	 * More than 4: use shortest...long
+	 * Then on index: S, IntermediateSync, Gap/Trailer, Pause whatever...
+	 * newkaku 1,2,2  sync
+	 * oldkaku 2,2,1 no sync
+	 * x10 1,2,2  sync
+	 * oregonv2 2,2,3 no sync
+	 */
 	// Preamble experiment 2,2,3
 	if ((OokNrTimeRanges(ixPulseSpace)==3) && ((OokNrTimeRanges(ixPulse)==2) && (OokNrTimeRanges(ixSpace)==2))) { // preamble/manchester like
-		RkrPreAmbleAnalysis(false, false);
+#if 0
+		RkrPreAmbleSyncManchesterAnalysis(true, false, false);
 		if (pulseSpaceMicros[iTime] <= 180) {
-			RkrPreAmbleAnalysis(true, false);
+			RkrPreAmbleSyncManchesterAnalysis(true, true, false);
 		}
 		else {// oregon scientific v2 protocol?
-			RkrPreAmbleAnalysis(false, true);
+			RkrPreAmbleSyncManchesterAnalysis(true, false, true);
 		}
+#else
+		if (RkrPreAmbleSyncManchesterAnalysis(false, false, true) >= 4) {
+			// oregon scientific v2 protocol?
+			RkrPreAmbleSyncManchesterAnalysis(true, false, true);
+		}
+		else if (RkrPreAmbleSyncManchesterAnalysis(false, true, false) >= 4) {
+			RkrPreAmbleSyncManchesterAnalysis(true, true, false);
+		}
+		else {
+			RkrPreAmbleSyncManchesterAnalysis(true, false, false);
+		}
+#endif
 	}
 	else { // Sync or just long/short experiment
 		// 1,2,2 or 2,1,2 signals: double min/max pairs...
 		boolean fSync = (OokNrTimeRanges(ixPulseSpace)==2) && ((OokNrTimeRanges(ixPulse)==1) || (OokNrTimeRanges(ixSpace)==1)); // x10 like
+#if 0
 		if (fSync) {
 			RkrPulseDistanceAnalysis(false, false); // seems ok for 44 X10...
 		}
+#endif
 		RkrPulseDistanceAnalysis(false, fSync); // seems ok for 44 X10...
 		RkrPulseDistanceAnalysis(true, fSync); // seems ok for 44 X10...
 	}

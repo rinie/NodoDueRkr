@@ -88,16 +88,29 @@ void PrintEventCode(ulong Code)
   if(Type==SIGNAL_TYPE_NEWKAKU)
     {
     // Aan/Uit zit in bit 5
-    Serial.print(F("KAKU_NEW"));
+    Serial.print(F("KakuNew"));
     PrintChar(' ');
+#if 0
     PrintValue(Code&0x0FFFFFEF);
+#else
+        Serial.print(F("Id:"));
+        Serial.print(Code>>5,HEX);
+
+        if (((Code>>5)&0x01)) {
+	        Serial.print(F(",All"));
+		}
+		else {
+			Serial.print(F(",Unit:"));
+			Serial.print(Code&0xF,HEX);
+		}
+#endif
     PrintChar(',');
     Serial.print(cmd2str(((Code>>4)&0x1)?VALUE_ON:VALUE_OFF));
     }
 
   else if(Type==SIGNAL_TYPE_NODO || Type==SIGNAL_TYPE_KAKU)
     {
-    Serial.print(F("KAKU"));
+    Serial.print(F("Kaku"));
     switch(Command)
       {
       // Par1 als KAKU adres [A0..P16] en Par2 als [On,Off]
