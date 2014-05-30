@@ -8,7 +8,7 @@ Settings are stored in EEPROM, so after a mode change and reset it will use the 
 
 You can change the mode with
 
-m x<cr><lf>
+m x&lt;cr&gt;&lt;lf&gt;
 
 Where x is:
 
@@ -18,7 +18,7 @@ Where x is:
 - n	NodoDueRkr text format baudrate 57600
 
 
-r<cr><lf> resets to factory setting 57600 mode n
+r&lt;cr&gt;&lt;lf&gt; resets to factory setting 57600 mode n
 
 
 Nodo_Due forked from http://code.google.com/p/arduino-nodo/
