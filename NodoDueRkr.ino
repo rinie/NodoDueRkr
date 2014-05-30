@@ -318,7 +318,7 @@ void ParseCommand() {
 					}
 					cmd = '\0';
 					break;
-				case 'b': // baudrate...
+				case 'b': // baudrate... todo
 					cmd = '\0';
 					break;
 				default:
