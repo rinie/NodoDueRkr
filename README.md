@@ -12,10 +12,11 @@ m x<cr><lf>
 
 Where x is:
 
--a	AnalysIR format Baudrate 2000000
--A	AnalysIR format Baudrate 115200
--l	Lirc format Baudrate 38400
--n	NodoDueRkr text format baudrate 57600
+- a	AnalysIR format Baudrate 2000000
+- A	AnalysIR format Baudrate 115200
+- l	Lirc format Baudrate 38400
+- n	NodoDueRkr text format baudrate 57600
+
 
 r<cr><lf> resets to factory setting 57600 mode n
 
