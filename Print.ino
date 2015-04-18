@@ -236,7 +236,7 @@ void PrintWelcome(void)
   PrintLine();
 
 
-  PrintLnStartRaw(F("NodoDueRkr (c)2011-2014 Rinie Kervel."));
+  PrintLnStartRaw(F("NodoDueRkr (c)2011-2015 Rinie Kervel."));
   PrintLnStartRaw(F("based on Nodo Due (c)2011 P.K.Tonkes."));
   PrintLnStartRaw(F("License: GNU General Public License."));
   PrintStartRaw(F("Version="));
@@ -261,7 +261,7 @@ void PrintWelcome(void)
  /**********************************************************************************************\
  * Print een string uit PROGMEM
  \*********************************************************************************************/
-void PrintText(prog_char* text)
+void PrintText(PGM_P const text)
   {
   byte x=0;
   char buffer[60];

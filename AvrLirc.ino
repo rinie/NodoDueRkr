@@ -71,7 +71,7 @@ tx_hexword(word v)
 
 #if DO_RECEIVE
 static void
-tx_str_p(const prog_char *s)
+tx_str_p(PGM_P const *s)
 {
     char c;
 

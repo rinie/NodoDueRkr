@@ -2,7 +2,7 @@
  * NodoDueRkr IR and OOK RF receival
  * Based on Nodo Due 1.2.1 by Paul Tonkes
  *
- * (c) 2011-2014 Rinie Kervel
+ * (c) 2011-2015 Rinie Kervel
  * Use Nodo Due as a Nice base for pulseSpaceMicros analysis of pulse/space signals
  * but rip out event processing and other parts I do not need
  * Adapt I/O for LIRC serial and AnalysIR
@@ -38,7 +38,7 @@
  *                                                     - Hardware en Arduino penbezetting volgens schema Nodo Due Rev.003
  \****************************************************************************************************************************/
 
-#define VERSION        002        // Nodo Version nummer:
+#define VERSION        003        // Nodo Version nummer:
                                   // Major.Minor.Patch
                                   // Major: Grote veranderingen aan concept, besturing, werking.
                                   // Minor: Uitbreiding/aanpassing van commando's, functionaliteit en MMI aanpassingen
@@ -60,15 +60,15 @@
 #define VALUE_DIRECTION_OUTPUT 6
 #define CMD_KAKU 92
 #define CMD_KAKU_NEW 93
-prog_char PROGMEM Cmd_0[]="Off";
-prog_char PROGMEM Cmd_1[]="On";
-prog_char PROGMEM Cmd_2[]="IR";
-prog_char PROGMEM Cmd_3[]="IR&RF";
-prog_char PROGMEM Cmd_4[]="RF";
-prog_char PROGMEM Cmd_5[]="Input";
-prog_char PROGMEM Cmd_6[]="Output";
+const char Cmd_0[] PROGMEM ="Off";
+const char Cmd_1[] PROGMEM ="On";
+const char Cmd_2[] PROGMEM="IR";
+const char Cmd_3[] PROGMEM="IR&RF";
+const char Cmd_4[] PROGMEM="RF";
+const char Cmd_5[] PROGMEM="Input";
+const char Cmd_6[] PROGMEM="Output";
 // tabel die refereert aan de commando strings
-PROGMEM const char *CommandText_tabel[]={
+PGM_P const CommandText_tabel[]={
   Cmd_0 ,Cmd_1 ,Cmd_2 ,Cmd_3 ,Cmd_4 ,Cmd_5 ,Cmd_6};
 #define COMMAND_MAX 7 // aantal commando's (dus geteld vanaf 0)
 #endif
