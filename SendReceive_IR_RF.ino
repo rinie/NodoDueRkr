@@ -155,7 +155,8 @@ ulong WaitForChangeState(uint8_t pin, uint8_t state, ulong timeout)
 int FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, uint psmIndexStart) {
 	int RawCodeLength=psmIndexStart+1;
 	ulong PulseLength;
-	if (RawCodeLength>=RAW_BUFFER_SIZE-4) {
+	if (RawCodeLength>=(RAW_BUFFER_SIZE-4)) {
+		PrintLnStartRaw(F("FetchSignal Overflow 2015"));
 		return 0;
 	}
 

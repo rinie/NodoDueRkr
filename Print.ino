@@ -105,7 +105,9 @@ void PrintEventCode(ulong Code)
 		}
 #endif
     PrintChar(',');
+#if 0 // 2015
     Serial.print(cmd2str(((Code>>4)&0x1)?VALUE_ON:VALUE_OFF));
+#endif
     }
 
   else if(Type==SIGNAL_TYPE_NODO || Type==SIGNAL_TYPE_KAKU)

@@ -701,8 +701,8 @@ void PrintPulseSpaceTimingOokTimeRange(uint iTime, boolean fIsRf) {
 	Ook.iTimeRange[ixPulse] = iTimeRange;
 	Ook.iTimeRange[ixSpace] = iTimeRange;
 	Ook.iTimeRange[ixPulseSpace] = iTimeRange;
-	//total time
-	if ((Ook.iTime > RAW_BUFFER_SIZE+2) || (Ook.iTimeEnd > RAW_BUFFER_SIZE+2)) {
+	//total time -4 test 2015
+	if ((Ook.iTime > (RAW_BUFFER_SIZE+2)) || (Ook.iTimeEnd > (RAW_BUFFER_SIZE+2))) {
 		PrintNum(Ook.iTime,0, 3);
 		PrintNum(Ook.iTimeEnd,',', 3);
 		PrintLnStartRaw(F("PrintPulseSpaceTiming Overflow"));
