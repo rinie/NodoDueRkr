@@ -29,9 +29,9 @@ ulong AnalyzeRawSignal(uint psmIndexStart)
   {
   ulong Code=0L;
 
-  if(pulseSpaceMicros[psmIndexStart]>=RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
+  if(PsCount(psmIndexStart)>=RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
 
-	switch (pulseSpaceMicros[psmIndexStart]) {
+	switch (PsCount(psmIndexStart)) {
 	case 66:
   		Code=RawSignal_2_Nodo(psmIndexStart);
   		break;
@@ -57,13 +57,13 @@ ulong RawSignal_2_Nodo(uint psmIndexStart)
   {
   ulong bitstream=0L;
   int x,y,z;
-  int xEnd = pulseSpaceMicros[psmIndexStart] + psmIndexStart;
+  int xEnd = PsCount(psmIndexStart) + psmIndexStart;
   // nieuwe NODO signaal bestaat altijd uit start bit + 32 bits. Ongelijk aan 66, dan geen Nodo signaal
-  if (pulseSpaceMicros[psmIndexStart]!=66)return 0L;
+  if (PsCount(psmIndexStart)!=66)return 0L;
 
   x=3 + psmIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e pulslengte
   do{
-    if(pulseSpaceMicros[x]>NODO_PULSE_MID)
+    if(PulseSpaceMicros(x)>NODO_PULSE_MID)
       bitstream|=(ulong)(1L<<z); //LSB in signaal wordt  als eerste verzonden
     x+=2;
     z++;
@@ -98,7 +98,7 @@ ulong RawSignal_2_32bit(uint psmIndexStart, bool fRkrTimeRangeStats, bool fPrint
 	int MinSpaceP;
 	ulong CodeP=0L;
 	ulong CodeS=0L;
-	int xEnd = pulseSpaceMicros[psmIndexStart] + psmIndexStart;
+	int xEnd = PsCount(psmIndexStart) + psmIndexStart;
 
 	// Kleinste, groter dan mid
 	// Grootste, kleinder dan mid
@@ -107,28 +107,28 @@ ulong RawSignal_2_32bit(uint psmIndexStart, bool fRkrTimeRangeStats, bool fPrint
 	// zoek de kortste tijd (PULSE en SPACE)
 	x = 5 + psmIndexStart; // 0=aantal, 1=startpuls, 2=space na startpuls, 3=1e puls
 	while (x <= xEnd-4) {
-		if (pulseSpaceMicros[x] < MinPulse) {
-			MinPulse=pulseSpaceMicros[x]; // Zoek naar de kortste pulstijd.
+		if (PulseSpaceMicros(x) < MinPulse) {
+			MinPulse=PulseSpaceMicros(x); // Zoek naar de kortste pulstijd.
 		}
-		if (pulseSpaceMicros[x] > MaxPulse) {
-			MaxPulse=pulseSpaceMicros[x]; // Zoek naar de langste pulstijd.
+		if (PulseSpaceMicros(x) > MaxPulse) {
+			MaxPulse=PulseSpaceMicros(x); // Zoek naar de langste pulstijd.
 		}
 
 		x++;
 
-		if (pulseSpaceMicros[x] < MinSpace && pulseSpaceMicros[x] > 10) {
-			MinSpace=pulseSpaceMicros[x]; // Zoek naar de kortste spacetijd.
+		if (PulseSpaceMicros(x) < MinSpace && PulseSpaceMicros(x) > 10) {
+			MinSpace=PulseSpaceMicros(x); // Zoek naar de kortste spacetijd.
 		}
-		if (pulseSpaceMicros[x] > MaxSpace) {
-			MaxSpace=pulseSpaceMicros[x]; // Zoek naar de langste spacetijd.
-		}
-
-		if (pulseSpaceMicros[x]+pulseSpaceMicros[x-1] < MinPulseSpace && pulseSpaceMicros[x] > 10) {
-				MinPulseSpace=pulseSpaceMicros[x]+pulseSpaceMicros[x-1]; // Zoek naar de kortste pulse + spacetijd.
+		if (PulseSpaceMicros(x) > MaxSpace) {
+			MaxSpace=PulseSpaceMicros(x); // Zoek naar de langste spacetijd.
 		}
 
-		if (pulseSpaceMicros[x]+pulseSpaceMicros[x-1] > MaxPulseSpace) {
-			MaxPulseSpace = pulseSpaceMicros[x] + pulseSpaceMicros[x-1]; // Zoek naar de langste pulse + spacetijd.
+		if (PulseSpaceMicros(x)+PulseSpaceMicros(x+1) < MinPulseSpace && PulseSpaceMicros(x) > 10) {
+				MinPulseSpace=PulseSpaceMicros(x)+PulseSpaceMicros(x+1); // Zoek naar de kortste pulse + spacetijd.
+		}
+
+		if (PulseSpaceMicros(x)+PulseSpaceMicros(x+1) > MaxPulseSpace) {
+			MaxPulseSpace = PulseSpaceMicros(x) + PulseSpaceMicros(x+1); // Zoek naar de langste pulse + spacetijd.
 		}
 		x++;
 	}
@@ -160,7 +160,7 @@ ulong RawSignal_2_32bit(uint psmIndexStart, bool fRkrTimeRangeStats, bool fPrint
 			CodeS=CodeS>>1;
 		}
 
-		if (pulseSpaceMicros[x]>MinPulse) {
+		if (PulseSpaceMicros(x)>MinPulse) {
 			if (z <= 31) {// de eerste 32 bits vullen in de 32-bit variabele
 				CodeP |= (long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
 			}
@@ -171,7 +171,7 @@ ulong RawSignal_2_32bit(uint psmIndexStart, bool fRkrTimeRangeStats, bool fPrint
 		}
 		x++;
 
-		if (pulseSpaceMicros[x]>MinSpace) {
+		if (PulseSpaceMicros(x)>MinSpace) {
 			if (z<=31) {// de eerste 32 bits vullen in de 32-bit variabele
 				CodeS |= (long)(1L<<z); //LSB in signaal wordt  als eerste verzonden
 			}
@@ -188,19 +188,19 @@ ulong RawSignal_2_32bit(uint psmIndexStart, bool fRkrTimeRangeStats, bool fPrint
 
 	if (fRkrTimeRangeStats) { // RKR print Pulse/Space stats, to my OokTimeRange code...
 		RkrTimeRangeStats(ixPulse,
-			pulseSpaceMicros[psmIndexStart+1],
+			PulseSpaceMicros(psmIndexStart+1),
 			MinPulseP, MaxPulse,
 			Counter_pulse,
 			CodeP,
 			fPrint);
 		RkrTimeRangeStats(ixSpace,
-			pulseSpaceMicros[psmIndexStart+2],
+			PulseSpaceMicros(psmIndexStart+2),
 			MinSpaceP, MaxSpace,
 			Counter_space,
 			CodeS,
 			fPrint);
 		RkrTimeRangeStats(ixPulseSpace,
-			pulseSpaceMicros[psmIndexStart+1] + pulseSpaceMicros[psmIndexStart+2],
+			PulseSpaceMicros(psmIndexStart+1) + PulseSpaceMicros(psmIndexStart+2),
 			MinPulseSpace, MaxPulseSpace,
 			Counter_pulse + Counter_space,
 			CodeS^CodeP,
@@ -226,20 +226,22 @@ void Nodo_2_RawSignal(ulong Code)
   byte BitCounter,y=1;
 
   // begin met een startbit.
-  pulseSpaceMicros[y++]=NODO_PULSE_1*2;
-  pulseSpaceMicros[y++]=NODO_SPACE*4;
+  PulseSpaceMicrosSet(y++, NODO_PULSE_1*2);
+  PulseSpaceMicrosSet(y++, NODO_SPACE*4);
 
   // de rest van de bits LSB als eerste de lucht in
   for(BitCounter=0; BitCounter<=31; BitCounter++)
     {
-    if(Code>>BitCounter&1)
-      pulseSpaceMicros[y++]=NODO_PULSE_1;
-    else
-      pulseSpaceMicros[y++]=NODO_PULSE_0;
-    pulseSpaceMicros[y++]=NODO_SPACE;
+    if(Code>>BitCounter&1) {
+      PulseSpaceMicrosSet(y++, NODO_PULSE_1);
+  }
+    else {
+      PulseSpaceMicrosSet(y++, NODO_PULSE_0);
+   }
+    PulseSpaceMicrosSet(y++, NODO_SPACE);
     }
-  pulseSpaceMicros[y-1]=NODO_PULSE_1*10; // pauze tussen de pulsreeksen
-  pulseSpaceMicros[0]=66; //  1 startbit bestaande uit een pulse/space + 32-bits is 64 pulse/space = totaal 66
+  PulseSpaceMicrosSet(y-1, NODO_PULSE_1*10); // pauze tussen de pulsreeksen
+  PsCountSet(0, 66); //  1 startbit bestaande uit een pulse/space + 32-bits is 64 pulse/space = totaal 66
   }
 
 /**********************************************************************************************\

@@ -231,7 +231,7 @@ void  reportPulses(uint xStart, uint xEnd) {
 #endif
 	//return;
 	for(uint x=xStart;x<=xEnd;x++, high = !high) {
-		word pulseIR = pulseSpaceMicros[x];
+		word pulseIR = PulseSpaceMicros(x);
 		len = pulseIR;
 		overflow = had_overflow;
     if (high) txBuffer[0] = '+'; //Mark is sent as +...LSB bit of pulseIR is State(Mark or Space)

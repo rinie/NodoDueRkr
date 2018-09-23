@@ -71,7 +71,7 @@ void WaitFreeRF(int Delay, int Window)
  /*********************************************************************************************\
  * Deze routine zendt een RAW code via RF.
  * De inhoud van de buffer pulseSpaceMicros moet de pulstijden bevatten.
- * pulseSpaceMicros[0] het aantal pulsen*2
+ * PsCount(0) het aantal pulsen*2
  \*********************************************************************************************/
 
 void RawSendRF(void)
@@ -85,12 +85,12 @@ void RawSendRF(void)
   for(byte y=0; y<settings.TransmitRepeat; y++) // herhaal verzenden RF code
     {
     x=1;
-    while(x<=pulseSpaceMicros[0])
+    while(x<=PsCount(0))
       {
       digitalWrite(RF_TransmitDataPin,HIGH); // 1
-      delayMicroseconds(pulseSpaceMicros[x++]);
+      delayMicroseconds(PulseSpaceMicros(x++));
       digitalWrite(RF_TransmitDataPin,LOW); // 0
-      delayMicroseconds(pulseSpaceMicros[x++]);
+      delayMicroseconds(PulseSpaceMicros(x++));
       }
     }
   digitalWrite(RF_TransmitPowerPin,LOW); // zet de 433Mhz zender weer uit
@@ -101,7 +101,7 @@ void RawSendRF(void)
  /*********************************************************************************************\
  * Deze routine zendt een 32-bits code via IR.
  * De inhoud van de buffer pulseSpaceMicros moet de pulstijden bevatten.
- * pulseSpaceMicros[0] het aantal pulsen*2
+ * PsCount(0) het aantal pulsen*2
  * Pulsen worden verzonden op en draaggolf van 38Khz.
  \*********************************************************************************************/
 
@@ -113,12 +113,12 @@ void RawSendIR(void)
   for(y=0; y<settings.TransmitRepeat; y++) // herhaal verzenden IR code
     {
     x=1;
-    while(x<=pulseSpaceMicros[0])
+    while(x<=PsCount(0))
       {
       TCCR2A|=_BV(COM2A0); // zet IR-modulatie AAN
-      delayMicroseconds(pulseSpaceMicros[x++]);
+      delayMicroseconds(PulseSpaceMicros(x++));
       TCCR2A&=~_BV(COM2A0); // zet IR-modulatie UIT
-      delayMicroseconds(pulseSpaceMicros[x++]);
+      delayMicroseconds(PulseSpaceMicros(x++));
       }
     }
   }
@@ -152,7 +152,7 @@ ulong WaitForChangeState(uint8_t pin, uint8_t state, ulong timeout)
  * RKR: Added uint psmIndexStart: receive repeated signals in one go
  \*********************************************************************************************/
 
-int FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, uint psmIndexStart) {
+int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut, uint psmIndexStart) {
 	int RawCodeLength=psmIndexStart+1;
 	ulong PulseLength;
 	if (RawCodeLength>=(RAW_BUFFER_SIZE-4)) {
@@ -165,34 +165,53 @@ int FetchSignal(byte DataPin, boolean StateSignal, int TimeOut, uint psmIndexSta
 	if (PulseLength<MIN_PULSE_LENGTH) {
 			return 0;
 	}
-	pulseSpaceMicros[RawCodeLength++]=PulseLength;
+	PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
 	PulseLength=WaitForChangeState(DataPin, !StateSignal, 2*TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
-	if(PulseLength + pulseSpaceMicros[RawCodeLength-1] > TimeOut) {
-		if(PulseLength + pulseSpaceMicros[RawCodeLength-1] > TimeOut + 1000) {
-			TimeOut = (PulseLength + pulseSpaceMicros[RawCodeLength-1]);
+#ifndef PULSESPACEINDEX
+	// try 2015
+	if((PulseLength > TimeOut) || (PulseSpaceMicros(RawCodeLength-1)) > TimeOut) {
+		if(PulseLength > TimeOut) {
+			TimeOut = PulseLength + 200;
 		}
 		else {
-			TimeOut = 2*(PulseLength + pulseSpaceMicros[RawCodeLength-1] + 1000);
+			TimeOut = (PulseSpaceMicros(RawCodeLength-1) + 200);
 		}
 	}
-	pulseSpaceMicros[RawCodeLength++]=PulseLength;
-
+	else if ((PulseLength + PulseSpaceMicros(RawCodeLength-1)) < TimeOut) {
+		if ((PulseLength + PulseSpaceMicros(RawCodeLength-1)) < (TimeOut / 2)) {
+			TimeOut = TimeOut / 2;
+		}
+		else {
+			TimeOut = (PulseLength + PulseSpaceMicros(RawCodeLength-1)) + 100;
+		}
+	}
+#else
+	TimeOut *=2; // old Nodo timeout
+#endif
+	PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
 	// Original code
 	do { // lees de pulsen in microseconden en plaats deze in een tijdelijke buffer
 		PulseLength=WaitForChangeState(DataPin, StateSignal, TimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
 		if (PulseLength<MIN_PULSE_LENGTH) {
 			return 0;
 		}
-		pulseSpaceMicros[RawCodeLength++]=PulseLength;
+		PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
 		PulseLength=WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
-		pulseSpaceMicros[RawCodeLength++]=PulseLength;
+#ifndef PULSESPACEINDEX
+		PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
+#else
+		PulseSpaceMicrosSet(RawCodeLength++, (PulseLength!=0) ? PulseLength : TimeOut);
+#endif
 	} while (RawCodeLength<RAW_BUFFER_SIZE && PulseLength!=0);// Zolang nog niet alle bits ontvangen en er niet vroegtijdig een timeout plaats vindt
-
-	if (RawCodeLength-psmIndexStart>=MIN_RAW_PULSES && RawCodeLength<RAW_BUFFER_SIZE) {
-		pulseSpaceMicros[psmIndexStart]=(RawCodeLength-psmIndexStart)-1; // RKR store signal length
+	if ((RawCodeLength-psmIndexStart)>=MIN_RAW_PULSES && RawCodeLength<RAW_BUFFER_SIZE) {
+#if 0
+		PrintStartRaw(F("TTimeout "));
+		Serial.println(TimeOut);
+#endif
+		PsCountSetS(psmIndexStart, (RawCodeLength-psmIndexStart)-1, 3); // RKR store signal length
 		return (RawCodeLength-psmIndexStart)-1;
 	}
-	pulseSpaceMicros[psmIndexStart]=0;
+	PsCountSetS(psmIndexStart, 0, 4);
 	return 0;
 }
 

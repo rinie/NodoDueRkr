@@ -85,7 +85,11 @@ PGM_P const CommandText_tabel[]={
 #define RF_TransmitDataPin          5  // data naar de zender
 #define RF_ReceiveDataPin           2  // Op deze input komt het 433Mhz-RF signaal binnen. LOW bij geen signaal.
 #define RF_ReceivePowerPin         12  // Spanning naar de ontvanger via deze pin.
+#ifndef NINJA_BLOCK
 #define MonitorLedPin              13  // bij iedere ontvangst of verzending licht deze led kort op.
+#else
+#define MonitorLedPin              BLUE_STAT_LED_PIN  // bij iedere ontvangst of verzending licht deze led kort op.
+#endif
 #define BuzzerPin                   6  // luidspreker aansluiting
 #define WiredAnalogInputPin_1       0  // vier analoge inputs van 0 tot en met 3
 #define WiredDigitalOutputPin_1     7  // vier digitale outputs van 7 tot en met 10
@@ -134,9 +138,9 @@ PGM_P const CommandText_tabel[]={
 #define DISPLAY_RESET               DISPLAY_UNIT + DISPLAY_SOURCE + DISPLAY_DIRECTION + DISPLAY_TAG
 #define ENABLE_SOUND				false	// RKR default for EnableSound
 // settings voor verzenden en ontvangen van IR/RF
-#define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen één reeks signalen beëindigd is
-#define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt één RF signaal als beëindigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
-#define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt één IR signaal als beëindigd beschouwd.
+#define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen één reeks signalen beÃ«indigd is
+#define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt één RF signaal als beÃ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
+#define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt één IR signaal als beÃ«indigd beschouwd.
 #define TX_REPEATS                 5 // aantal herhalingen van een code binnen één RF of IR reeks
 #define MIN_PULSE_LENGTH         75 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd. RKR was 100 try 75
 
@@ -176,7 +180,9 @@ ulong LoopIntervalTimer_1=millis();// millis() maakt dat de intervallen van 1 en
 ulong LoopIntervalTimer_2=0L;
 ulong psStartSignalMillis=millis(); // RKR measure time between signals
 ulong psStartSignalMillisLast= 0; // RKR measure time between signals for filtered signals
+#ifndef PULSESPACEINDEX
 uint pulseSpaceMicros[RAW_BUFFER_SIZE+4 + RAW_BUFFER_TIMERANGE_SIZE];          // Tabel met de gemeten pulsen in microseconden. eerste waarde is het aantal bits*2
+#endif
 
 // RAWSIGNAL_TOGGLE
 boolean RawsignalGet=true;
@@ -369,8 +375,12 @@ void loop()
         {
 		ParseCommand();
 	}
+#ifndef NINJA_BLOCK
 	{ // RKR RawsignalGet measure repetitions
 		int psmStart = 0;
+#ifdef PULSESPACEINDEX
+		psInit(); // needed?
+#endif
 	    //StaySharpMillis=millis()+SHARP_TIME;
 
 		// RF: *************** kijk of er data start op IR en genereer een event als er een code ontvangen is **********************
@@ -383,10 +393,10 @@ void loop()
 				  	if (psmStart == 0) { //inter messages time
 						psStartSignalMillis = StartSignalTime;
 					}
-					psmStart = psmStart + pulseSpaceMicros[psmStart] + 2;
+					psmStart = psmStart + PulseSpaceMicros(psmStart) + 2;
 					 // intra message time
 					StartSignalTime -= (StaySharpMillis  - SHARP_TIME*2);
-					pulseSpaceMicros[psmStart-1] = (StartSignalTime > 0) ? StartSignalTime : 1;
+					PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, 1);
 
 					StaySharpMillis=millis()+SHARP_TIME*2;
 			}
@@ -395,8 +405,13 @@ void loop()
 			}
 		  }
 		} while(millis()<StaySharpMillis);
-	    pulseSpaceMicros[psmStart]=0; // next count 0
+#ifndef PULSESPACEINDEX
+	    PsCountSetS(psmStart, 0, 2); // next count 0
+#endif
 	    if (psmStart > 0){
+#ifdef PULSESPACEINDEX
+		    PsCountSetS(psmStart, 0, 2); // next count 0
+#endif
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 			{
@@ -404,10 +419,12 @@ void loop()
 			}
 		}
 	}
-
+#endif
 	{ // RKR RawsignalGet measure repetitions
 		int psmStart = 0;
-
+#ifdef PULSESPACEINDEX
+		psInit(); // needed?
+#endif
 		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
 		  {
@@ -418,10 +435,10 @@ void loop()
 				  	if (psmStart == 0) { //inter messages time
 						psStartSignalMillis = StartSignalTime;
 					}
-					psmStart = psmStart + pulseSpaceMicros[psmStart] + 2;
+					psmStart = psmStart + PulseSpaceMicros(psmStart) + 2;
 					 // intra message time
 					StartSignalTime -= (StaySharpMillis  - SHARP_TIME);
-					pulseSpaceMicros[psmStart-1] = (StartSignalTime > 0) ? StartSignalTime : 1;
+					PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, 1);
 
 					StaySharpMillis=millis()+SHARP_TIME;
 			}
@@ -430,8 +447,13 @@ void loop()
 			}
 		  }
 		} while(millis()<StaySharpMillis);
-	    pulseSpaceMicros[psmStart]=0; // next count 0
+#ifndef PULSESPACEINDEX
+	    PsCountSetS(psmStart, 0, 2); // next count 0
+#endif
 	    if (psmStart > 0){
+#ifdef PULSESPACEINDEX
+		    PsCountSetS(psmStart, 0, 2); // next count 0
+#endif
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 			{

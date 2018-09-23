@@ -616,7 +616,7 @@ void loop () {
 #ifdef NODO_DUE // Nodo Due just uses the ReportPulses code
 void  jeeLabsOokOsv2(uint xStart, uint xEnd) {
 	for(int x=xStart;x<=xEnd;x++) {
-		word p = pulseSpaceMicros[x];
+		word p = PulseSpaceMicros(x);
 
 		if (p != 0) {
 			if (orscV2.nextPulse(p))
