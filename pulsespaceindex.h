@@ -1,5 +1,6 @@
 /*
  * General OOK decoding without knowing the protocol before hand.
+ * (c) Rinie Kervel 2015-2020 MIT License
  *
  * A lot of opensource software/hardware OOK decoding solutions
  * disregard the fact that commercial solutions do work with cheap receivers
@@ -138,9 +139,9 @@ uint psMicroMax[PS_MICRO_ELEMENTS]; // nibble index, 0x0F is overflow so max 15
 ulong psMicroSum[PS_MICRO_ELEMENTS]; // nibble index, 0x0F is overflow so max 15
 uint psMicroSumCount[PS_MICRO_ELEMENTS];
 #endif
-#define PS_MERGE
-#undef PS_MERGE_DEBUG
-#define PS_MINDIFF	50 // value for merge
+#define PS_MERGE // 2020 works so use pulsespaceindex.js experience here
+#define PS_MERGE_DEBUG
+#define PS_MINDIFF	100 // value for merge
 typedef enum {psixPulse, psixSpace, psixPulseSpace, PSIXNRELEMENTS} psiIx; //
 uint psixCount[PS_MICRO_ELEMENTS][PSIXNRELEMENTS]; // index frequency, makes sense to split Pulse/Space to detect signal type...
 
@@ -272,8 +273,26 @@ static void psiSortMicroMinMax() {
 	}
 }
 
-#ifdef PS_MERGE
-
+/*
+ *
+ * psiMergeMicroMinMax
+ * 2020 works after sort so use pulsespaceindex.js logic
+ * for smallest signal < 500
+       let mergeGap = (psv <= 500) ? 500 : psv + 250;
+       if (pulseSpace[i].ps > mergeGap) {
+         //console.log('Merge gap', mergeGap, pulseSpace[i].ps, index, psct);
+         if (index < 2) {
+           if (psct <= 2) { // start spike
+             mergeGap = pulseSpace[i].ps;
+           }
+           else if (psv >= 400 && index < 1) {
+             mergeGap = 700;
+           }
+         }
+       }
+ *
+ *
+ */
 static void psiMergeMicroMinMax() {
 	byte psNewIndex[PS_MICRO_ELEMENTS];
 	uint prevMinVal = 0;
@@ -286,8 +305,17 @@ static void psiMergeMicroMinMax() {
 	psNewIndex[0] = 0;
 	for (byte i = 1; i < psMinMaxCount; i++) {
 		byte j = i - mergeCount;
+		uint minDiff = PS_MINDIFF;
+		if (psMicroMin[i] < 800) {
+			if (psMicroMin[i] < 500) {
+				minDiff = 500;
+			}
+			else {
+				minDiff = 250;
+			}
+		}
 		psNewIndex[i] = j;
-		if (psMicroMin[i] < (psMicroMax[j-1] + PS_MINDIFF)) {
+		if (psMicroMin[i] < (psMicroMax[j-1] + minDiff)) {
 #ifdef PS_MERGE_DEBUG
 			Serial.print(F("Merge["));
 			psiPrintComma(psMicroMax[j-1], ' ', 3);
@@ -341,7 +369,6 @@ static void psiMergeMicroMinMax() {
 		psMinMaxCount -= mergeCount;
 	}
 }
-#endif
 
 void psiPrint() {
 	uint psCount;
@@ -856,6 +883,7 @@ static byte psNibbleIndex(uint pulse, uint space) {
 				// uint tolerance = (value < 500) ? 400 : (value < 1000) ? 200 : ((value < 2000) ? 400 : ((value < 5000) ? 600 : 1000));
 				// 20180916 was:
 				//uint tolerance = (value < 400) ? 300 : (value < 800) ? 400 : (value < 1200) ? 200 : ((value < 2000) ? 400 : ((value < 5000) ? 600 : 2000));
+				// 20200509: keep fix in merge
 				uint tolerance = (value < 1000) ? 150 : (value < 2000) ? 200 : (value < 3000) ? 300 : ((value < 4000) ? 400 : ((value < 5000) ? 600 : 2000));
 				for (k = 0; k < psMinMaxCount; k++) { // determine closest interval
 					uint offByi = value;
@@ -959,6 +987,7 @@ static void processReady() {
 			psiSortMicroMinMax();
 #ifdef PS_MERGE
 #ifdef PS_MERGE_DEBUG
+			Serial.println(F("Psi Before Merge"));
 			psiPrint();
 #endif
 			psiMergeMicroMinMax();

@@ -2,7 +2,7 @@
  * NodoDueRkr IR and OOK RF receival
  * Based on Nodo Due 1.2.1 by Paul Tonkes
  *
- * (c) 2011-2015 Rinie Kervel
+ * (c) 2011-2015, 2020 Rinie Kervel
  * Use Nodo Due as a Nice base for pulseSpaceMicros analysis of pulse/space signals
  * but rip out event processing and other parts I do not need
  * Adapt I/O for LIRC serial and AnalysIR
@@ -38,7 +38,7 @@
  *                                                     - Hardware en Arduino penbezetting volgens schema Nodo Due Rev.003
  \****************************************************************************************************************************/
 
-#define VERSION        003        // Nodo Version nummer:
+#define VERSION        004        // Nodo Version nummer:
                                   // Major.Minor.Patch
                                   // Major: Grote veranderingen aan concept, besturing, werking.
                                   // Minor: Uitbreiding/aanpassing van commando's, functionaliteit en MMI aanpassingen
@@ -110,10 +110,10 @@ PGM_P const CommandText_tabel[]={
 #define NODO_TYPE_COMMAND            2
 
 #ifndef AVR_LIRC
-#define BAUD                     57600 // Baudrate voor seriële communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
+#define BAUD                     57600 // Baudrate voor seriÃ«le communicatie. RKR 19200->57600 And CR/LF instead of just LF
 #else
 #ifdef ANALYSIR
-#define BAUD                     2000000 // Baudrate voor seriële communicatie.
+#define BAUD                     2000000 // Baudrate voor seriÃ«le communicatie.
 #else
 #define BAUD                     38400 // LIRC
 #endif
@@ -138,10 +138,10 @@ PGM_P const CommandText_tabel[]={
 #define DISPLAY_RESET               DISPLAY_UNIT + DISPLAY_SOURCE + DISPLAY_DIRECTION + DISPLAY_TAG
 #define ENABLE_SOUND				false	// RKR default for EnableSound
 // settings voor verzenden en ontvangen van IR/RF
-#define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen één reeks signalen beÃ«indigd is
-#define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt één RF signaal als beÃ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
-#define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt één IR signaal als beÃ«indigd beschouwd.
-#define TX_REPEATS                 5 // aantal herhalingen van een code binnen één RF of IR reeks
+#define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen Ã©Ã©n reeks signalen beÃƒÂ«indigd is
+#define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt Ã©Ã©n RF signaal als beÃƒÂ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
+#define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt Ã©Ã©n IR signaal als beÃƒÂ«indigd beschouwd.
+#define TX_REPEATS                 5 // aantal herhalingen van een code binnen Ã©Ã©n RF of IR reeks
 #define MIN_PULSE_LENGTH         75 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd. RKR was 100 try 75
 
 #ifdef ANALYSIR
@@ -149,7 +149,7 @@ PGM_P const CommandText_tabel[]={
 #else
 #define MIN_RAW_PULSES            16 // =8 bits. Minimaal aantal ontvangen bits*2 alvorens cpu tijd wordt besteed aan decodering, etc. Zet zo hoog mogelijk om CPU-tijd te sparen en minder 'onzin' te ontvangen.
 #endif
-#define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar één dezelfde poort na binnenkomst van een signaal
+#define SHARP_TIME               500 // tijd in milliseconden dat de nodo gefocust moet blijven luisteren naar Ã©Ã©n dezelfde poort na binnenkomst van een signaal
 //****************************************************************************************************************************************
 typedef enum OUTPUTMODE {
 	omNodoDueRkr, omLirc, omAnalysIR
@@ -238,7 +238,7 @@ void setup()
   IRport=digitalPinToPort(IR_ReceiveDataPin);
 
 	LoadSettingsFromEeprom();	// store baudrate and mode in Eeprom
-  Serial.begin(settings.BaudRate);  // Initialiseer de seriële poort
+  Serial.begin(settings.BaudRate);  // Initialiseer de seriÃ«le poort
   IR38Khz_set();       // Initialiseet de 38Khz draaggolf voor de IR-zender.
   PrintWelcome();
   }
@@ -330,7 +330,7 @@ void ParseCommand() {
 					switch(c) {
 						case 'n':
 							  settings.Mode	= omNodoDueRkr;
-							  settings.BaudRate = 57600; // Baudrate voor seriële communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
+							  settings.BaudRate = 57600; // Baudrate voor seriÃ«le communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
 							  break;
 						case 'l':
 							  settings.Mode	= omLirc;
@@ -370,7 +370,7 @@ void loop()
   // als er geen signalen binnenkomen duurt deze hoofdloop +/- 35uSec. snel genoeg om geen signalen te missen.
   while(true)
     {
-    // SERIAL: *************** kijk of er data klaar staat op de seriële poort **********************
+    // SERIAL: *************** kijk of er data klaar staat op de seriÃ«le poort **********************
       if(Serial.available()>0)
         {
 		ParseCommand();

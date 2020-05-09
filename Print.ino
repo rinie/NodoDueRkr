@@ -238,7 +238,7 @@ void PrintWelcome(void)
   PrintLine();
 
 
-  PrintLnStartRaw(F("NodoDueRkr (c)2011-2015 Rinie Kervel."));
+  PrintLnStartRaw(F("NodoDueRkr (c)2011-2020 Rinie Kervel."));
   PrintLnStartRaw(F("based on Nodo Due (c)2011 P.K.Tonkes."));
   PrintLnStartRaw(F("License: GNU General Public License."));
   PrintStartRaw(F("Version="));

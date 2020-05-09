@@ -55,7 +55,7 @@ void PsCountSetS(uint psmIndexStart, uint value, uint s) {
 	}
 #endif
 	if (psiCount > 2) {
-		Serial.print(F("PsCountSet"));
+		Serial.print(F("PsCountSet: "));
 		psiPrintComma(psmIndexStart, 'I', 1);
 		psiPrintComma(value, 'V', 1);
 		psiPrintComma(s, 'S', 1);
