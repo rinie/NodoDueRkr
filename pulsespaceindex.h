@@ -35,8 +35,8 @@
  *
  *		For version 2.1 sensors only, each data bit is actually sent four times. This is
  *		accomplished by first sending each data bit twice (inverted the first time),
- *		doubling the size of the original message. A one bit is sent as a ì01î sequence
- *		and a zero bit is sent as ì10î. Secondly, the entire message is repeated once.
+ *		doubling the size of the original message. A one bit is sent as a ‚Äú01‚Äù sequence
+ *		and a zero bit is sent as ‚Äú10‚Äù. Secondly, the entire message is repeated once.
  *		 Oregon Scientific RF Protocols
  *		 Page 2 of 23
  *		Some sensors will insert a gap (about 10.9 msec for the THGR122NX) between
@@ -44,14 +44,14 @@
  *
  *		Both 2.1 and 3.0 protocols have a similar message structure containing four
  *		parts.
- *		1. The preamble consists of ì1î bits, 24 bits (6 nibbles) for v3.0 sensors
+ *		1. The preamble consists of ‚Äú1‚Äù bits, 24 bits (6 nibbles) for v3.0 sensors
  *		and 16 bits (4 nibbles) for v2.1 sensors (since a v2.1 sensor bit stream
  *		contains an inverted and interleaved copy of the data bits, there is in
- *		fact a 32 bit sequence of alternating ì0î and ì1î bits in the preamble).
- *		2. A sync nibble (4-bits) which is ì0101î in the order of transmission. With
- *		v2.1 sensors this actually appears as ì10011001î. Since nibbles are sent
- *		LSB first, the preamble nibble is actually ì1010î or a hexadecimal ìAî.
- *		3. The sensor data payload, which is described in the ìMessage Formatsî
+ *		fact a 32 bit sequence of alternating ‚Äú0‚Äù and ‚Äú1‚Äù bits in the preamble).
+ *		2. A sync nibble (4-bits) which is ‚Äú0101‚Äù in the order of transmission. With
+ *		v2.1 sensors this actually appears as ‚Äú10011001‚Äù. Since nibbles are sent
+ *		LSB first, the preamble nibble is actually ‚Äú1010‚Äù or a hexadecimal ‚ÄúA‚Äù.
+ *		3. The sensor data payload, which is described in the ‚ÄúMessage Formats‚Äù
  *		section below.
  *		4. A post-amble (usually) containing two nibbles, the purpose or format of
  *		which is not understood at this time. At least one sensor (THR238NF)
@@ -277,6 +277,9 @@ static void psiSortMicroMinMax() {
  *
  * psiMergeMicroMinMax
  * 2020 works after sort so use pulsespaceindex.js logic
+ * And improve: ... max 2 pulse and 2 space databits
+ * 2, 3 or 4 total databits
+ *
  * for smallest signal < 500
        let mergeGap = (psv <= 500) ? 500 : psv + 250;
        if (pulseSpace[i].ps > mergeGap) {
@@ -299,6 +302,7 @@ static void psiMergeMicroMinMax() {
 	uint prevMaxVal = 0;
 	byte jPrev = 0;
 	byte mergeCount = 0;
+	uint minPsCount = (psiCount * 2) / 8; // assume max 4 01 timings
 
 	// psMicroMin/psMicroMax have actual timings
 	// store sort in psNewIndex
@@ -306,22 +310,32 @@ static void psiMergeMicroMinMax() {
 	for (byte i = 1; i < psMinMaxCount; i++) {
 		byte j = i - mergeCount;
 		uint minDiff = PS_MINDIFF;
-		if (psMicroMin[i] < 800) {
-			if (psMicroMin[i] < 500) {
-				minDiff = 500;
-			}
-			else {
-				minDiff = 250;
+#if 0
+		if (psMicroMin[i] >= (psMicroMax[j-1] + minDiff)
+			&& psMicroMin[i] < 1600
+			&& (psMicroMin[i] < (psMicroMax[j-1] + 500))) {
+				if ((psMicroSumCount[i] >= minPsCount
+					&& psMicroSumCount[j-1] < minPsCount)
+					|| (psMicroSumCount[i] < minPsCount
+					&& psMicroSumCount[j-1] >= minPsCount)) {
+				minDiff = psMicroMin[i] - psMicroMax[j-1] + 1;
 			}
 		}
+#endif
 		psNewIndex[i] = j;
 		if (psMicroMin[i] < (psMicroMax[j-1] + minDiff)) {
 #ifdef PS_MERGE_DEBUG
+			// merge i to j-1
 			Serial.print(F("Merge["));
+			psiPrintComma(minDiff, '*', 3);
+			psiPrintComma(psMicroMin[i] - psMicroMax[j-1], ' ', 3);
 			psiPrintComma(psMicroMax[j-1], ' ', 3);
 			psiPrintComma(psMicroMin[i], ']', 3);
 			psiPrintComma(i, '-', 1);
 			psiPrintComma(j-1, ' ', 1);
+			psiPrintComma(minPsCount, ' ', 3);
+			psiPrintComma(psMicroSumCount[i], '-', 2);
+			psiPrintComma(psMicroSumCount[j-1], ' ', 2);
 			Serial.println();
 #endif
 			psMicroMax[j-1] = psMicroMax[i];
@@ -343,7 +357,7 @@ static void psiMergeMicroMinMax() {
 			psNewIndex[i] = j-1;
 			mergeCount++;
 		}
-		else if (j < i) {
+		else if (j < i) { // shift
 			psMicroMin[j] = psMicroMin[i];
 			psMicroMax[j] = psMicroMax[i];
 #ifdef PS_MICRO_AVG
@@ -370,7 +384,7 @@ static void psiMergeMicroMinMax() {
 	}
 }
 
-void psiPrint() {
+static void psiPrint() {
 	uint psCount;
 	bool fPrintHex = false;
 
@@ -444,7 +458,7 @@ void psiPrint() {
 		else { // psixPulseSpace max of individual values
 			psiCountData[ix] = max(psiCountData[psixPulse], psiCountData[psixSpace]);
 		}
-#if 0
+#if 1
 		psiPrintComma(psiDataShort[ix], ',', 1);
 		psiPrintComma(psiDataLong[ix], ',', 1);
 		psiPrintComma(psiCountGapMax, '*', 1);
@@ -548,7 +562,7 @@ void psiPrint() {
 		uint jDataRepeat = 0;
 		uint j = 0;
 		// try all packages, print last match incl surrounding gaps, continue at first non match
-#if 0 // disable for JS analysis
+#if 1 // disable for JS analysis
 		//psiPrintChar('r');
 		for (uint i = 0; i < jMaxCount; i++) {
 			uint iDataRepeat = 0;
@@ -839,11 +853,6 @@ void psiPrint() {
 #endif
 }
 
-void psInit(void) {
-	psMinMaxCount = 0;
-	psiCount = 0;
-}
-
 /*
  *	psNibbleIndex
  *
@@ -961,6 +970,11 @@ static byte psNibbleIndex(uint pulse, uint space) {
 	return psNibble;
 }
 
+void psReset(void) {
+	psMinMaxCount = 0;
+	psiCount = 0;
+}
+
 #if 1 // Rinie get to know code
 	static uint16_t psCount = 0;
 	static uint32_t startSignal;
@@ -1001,7 +1015,7 @@ static void processReady() {
 		//}
 	}
 	psCount = 0;
-	psInit();
+	psReset();
 }
 
 /*
@@ -1012,25 +1026,23 @@ static void processReady() {
  */
 bool processBitRkr(uint16_t pulse_dur, uint8_t signal, uint8_t rssi) {
 	static uint lastPulseDur = 0;
-#if 1 //add first pulse/space pair last...
+ 	//add first pulse/space pair last...
+ 	// as that can be garbled
 	static uint firstPulseDur = 0;
 	static uint firstSpaceDur = 0;
-#endif
+
 	if (pulse_dur > 1) {
-#if 1
 		if ((pulse_dur > 75) && (pulse_dur < EDGE_TIMEOUT)){
-#endif
 			if (psCount == 0) {
 				startSignal = millis();
 				startSignalm = micros();
 				if (!lastSignal) {
 					lastSignal = startSignal;
 				}
-				psInit();
+				psReset();
 			}
 			if (psCount & 1) {	// Odd means pulse and space, so pulse_dur is space
 				if (psiCount < NRELEMENTS(psiNibbles)) {
-#if 1
 					if (psCount <= 1) { // first timing can be partial noise
 							firstPulseDur = lastPulseDur;
 							firstSpaceDur = pulse_dur;
@@ -1039,21 +1051,14 @@ bool processBitRkr(uint16_t pulse_dur, uint8_t signal, uint8_t rssi) {
 					else {
 						psiNibbles[psiCount++] = psNibbleIndex(lastPulseDur, pulse_dur);
 					}
-#else
-					psiNibbles[psiCount++] = psNibbleIndex(lastPulseDur, pulse_dur);
-#endif
 					if (psiCount >=  NRELEMENTS(psiNibbles)) {
-#if 1
 						psiNibbles[0] = psNibbleIndex(firstPulseDur, firstSpaceDur);
-#endif
 						processReady();
 						return false;
 					}
 				}
 				else {
-#if 1
 					psiNibbles[0] = psNibbleIndex(firstPulseDur, firstSpaceDur);
-#endif
 					processReady();
 					return false;
 				}
@@ -1062,16 +1067,13 @@ bool processBitRkr(uint16_t pulse_dur, uint8_t signal, uint8_t rssi) {
 				lastPulseDur = pulse_dur;
 			}
 			psCount++;
-#if 1
 		}
-#endif
 	}
 	if ((!rssi) && (pulse_dur == 1)) { // footer, fake pulse, print and reset
-#if 1
 		psiNibbles[0] = psNibbleIndex(firstPulseDur, firstSpaceDur);
-#endif
 		processReady();
 	}
 	return false; // return true to skip decoders...
 }
+
 #endif // __PULSESPACEINDEX_H__

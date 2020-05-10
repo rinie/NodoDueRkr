@@ -109,12 +109,16 @@ PGM_P const CommandText_tabel[]={
 #define NODO_TYPE_EVENT              1
 #define NODO_TYPE_COMMAND            2
 
+#define BAUD                     115200 // Baudrate voor seriÃ«le communicatie. RKR 19200->57600, now VSC wants 115200  And CR/LF instead of just LF
 #ifndef AVR_LIRC
-#define BAUD                     57600 // Baudrate voor seriÃ«le communicatie. RKR 19200->57600 And CR/LF instead of just LF
+#undef BAUD
+#define BAUD                     115200 // Baudrate voor seriÃ«le communicatie. RKR 19200->57600, now VSC wants 115200  And CR/LF instead of just LF
 #else
 #ifdef ANALYSIR
+#undef BAUD
 #define BAUD                     2000000 // Baudrate voor seriÃ«le communicatie.
 #else
+#undef BAUD
 #define BAUD                     38400 // LIRC
 #endif
 #endif
@@ -330,7 +334,7 @@ void ParseCommand() {
 					switch(c) {
 						case 'n':
 							  settings.Mode	= omNodoDueRkr;
-							  settings.BaudRate = 57600; // Baudrate voor seriÃ«le communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
+							  settings.BaudRate = BAUD; // Baudrate voor seriÃ«le communicatie. RKR 19200->57600 Abd CR/LF instead of just LF
 							  break;
 						case 'l':
 							  settings.Mode	= omLirc;
@@ -379,7 +383,7 @@ void loop()
 	{ // RKR RawsignalGet measure repetitions
 		int psmStart = 0;
 #ifdef PULSESPACEINDEX
-		psInit(); // needed?
+		psReset(); // needed?
 #endif
 	    //StaySharpMillis=millis()+SHARP_TIME;
 
@@ -396,7 +400,7 @@ void loop()
 					psmStart = psmStart + PulseSpaceMicros(psmStart) + 2;
 					 // intra message time
 					StartSignalTime -= (StaySharpMillis  - SHARP_TIME*2);
-					PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, 1);
+					PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, pscsIntraTime);
 
 					StaySharpMillis=millis()+SHARP_TIME*2;
 			}
@@ -406,11 +410,11 @@ void loop()
 		  }
 		} while(millis()<StaySharpMillis);
 #ifndef PULSESPACEINDEX
-	    PsCountSetS(psmStart, 0, 2); // next count 0
+	    PsCountSetS(psmStart, 0, pscsReady); // next count 0
 #endif
 	    if (psmStart > 0){
 #ifdef PULSESPACEINDEX
-		    PsCountSetS(psmStart, 0, 2); // next count 0
+		    PsCountSetS(psmStart, 0, pscsReady); // next count 0
 #endif
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
@@ -423,7 +427,7 @@ void loop()
 	{ // RKR RawsignalGet measure repetitions
 		int psmStart = 0;
 #ifdef PULSESPACEINDEX
-		psInit(); // needed?
+		psReset(); // needed?
 #endif
 		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
@@ -438,7 +442,7 @@ void loop()
 					psmStart = psmStart + PulseSpaceMicros(psmStart) + 2;
 					 // intra message time
 					StartSignalTime -= (StaySharpMillis  - SHARP_TIME);
-					PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, 1);
+					PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, pscsIntraTime);
 
 					StaySharpMillis=millis()+SHARP_TIME;
 			}
@@ -448,11 +452,11 @@ void loop()
 		  }
 		} while(millis()<StaySharpMillis);
 #ifndef PULSESPACEINDEX
-	    PsCountSetS(psmStart, 0, 2); // next count 0
+	    PsCountSetS(psmStart, 0, pscsReady); // next count 0
 #endif
 	    if (psmStart > 0){
 #ifdef PULSESPACEINDEX
-		    PsCountSetS(psmStart, 0, 2); // next count 0
+		    PsCountSetS(psmStart, 0, pscsReady); // next count 0
 #endif
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
