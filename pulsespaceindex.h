@@ -2,6 +2,17 @@
  * General OOK decoding without knowing the protocol before hand.
  * (c) Rinie Kervel 2015-2020 MIT License
  *
+ * 2020
+ *	NodoDueRkr evolved in 3 steps:
+ *		-- NodoDue but record repeating signals:
+ *			RAWSIGNAL_MULTI: Rawsignal can be multiple signals: <count> <timing data> <count> <timing data> etc...
+ *		-- Store more data separating min/max timerange and index
+ *			RAW_BUFFER_TIMERANGE_SIZE: min/max timeranges and byteindex
+ *		-- PULSESPACEINDEX:
+ *			One byte stores Pulse index (0...0xE/OxF and Space (0...0xE/OxF)
+ *			this uses pulsespaceindex.h with processBitRkr that was first tried on rfm69-ook-receive-dio2.ino
+ *			Same logic is also used in PulseSpaceIndex.js with rflink and broadlink rmpro as signal source
+ *
  * A lot of opensource software/hardware OOK decoding solutions
  * disregard the fact that commercial solutions do work with cheap receivers
  * and without lowpass filters or such.
@@ -141,6 +152,7 @@ uint psMicroSumCount[PS_MICRO_ELEMENTS];
 #endif
 #define PS_MERGE // 2020 works so use pulsespaceindex.js experience here
 #define PS_MERGE_DEBUG
+#undef PS_MERGE_DEBUG
 #define PS_MINDIFF	100 // value for merge
 typedef enum {psixPulse, psixSpace, psixPulseSpace, PSIXNRELEMENTS} psiIx; //
 uint psixCount[PS_MICRO_ELEMENTS][PSIXNRELEMENTS]; // index frequency, makes sense to split Pulse/Space to detect signal type...
@@ -323,7 +335,9 @@ static void psiMergeMicroMinMax() {
 		}
 #endif
 		psNewIndex[i] = j;
-		if (psMicroMin[i] < (psMicroMax[j-1] + minDiff)) {
+		if (psMicroMin[i] < (psMicroMax[j-1] + minDiff)
+			&& (psMicroMax[j-1] - psMicroMin[j-1]) < 800
+			) {
 #ifdef PS_MERGE_DEBUG
 			// merge i to j-1
 			Serial.print(F("Merge["));
@@ -731,10 +745,13 @@ static void psiPrint() {
 	Serial.println(F("],"));
 
 #ifdef PS_MICRO_AVG
-	Serial.print(F("avgMicro: ["));
-	psiPrintComma(psMicroSum[0] / psMicroSumCount[0] , 0, 3, psMicroMax[0]);
+#define ROUND_MICRO 30 // like RfLink and Broadlink...
+	Serial.print(F("micro: ["));
+	ulong micro = ((psMicroSum[0] / psMicroSumCount[0]) / ROUND_MICRO) * ROUND_MICRO;
+	psiPrintComma(micro , 0, 3, psMicroMax[0]);
 	for (uint i=1; i < psMinMaxCount; i++) {
-		psiPrintComma(psMicroSum[i] / psMicroSumCount[i] , ',', 3, psMicroMax[i]);
+		micro = ((psMicroSum[i] / psMicroSumCount[i]) / ROUND_MICRO) * ROUND_MICRO;
+		psiPrintComma(micro, ',', 3, psMicroMax[i]);
 	}
 	Serial.println(F("],"));
 	Serial.print(F("Index:    ["));
@@ -970,9 +987,10 @@ static byte psNibbleIndex(uint pulse, uint space) {
 	return psNibble;
 }
 
-void psReset(void) {
+void psReset(bool fRf = true) {
 	psMinMaxCount = 0;
 	psiCount = 0;
+	fIsRf = fRf;
 }
 
 #if 1 // Rinie get to know code
@@ -1030,6 +1048,7 @@ bool processBitRkr(uint16_t pulse_dur, uint8_t signal, uint8_t rssi) {
  	// as that can be garbled
 	static uint firstPulseDur = 0;
 	static uint firstSpaceDur = 0;
+	static uint maxSpaceDur = 0;
 
 	if (pulse_dur > 1) {
 		if ((pulse_dur > 75) && (pulse_dur < EDGE_TIMEOUT)){
@@ -1046,10 +1065,15 @@ bool processBitRkr(uint16_t pulse_dur, uint8_t signal, uint8_t rssi) {
 					if (psCount <= 1) { // first timing can be partial noise
 							firstPulseDur = lastPulseDur;
 							firstSpaceDur = pulse_dur;
+							maxSpaceDur = pulse_dur;
 							psiCount = 1;
 					}
 					else {
 						psiNibbles[psiCount++] = psNibbleIndex(lastPulseDur, pulse_dur);
+						if (pulse_dur > maxSpaceDur) {
+							maxSpaceDur = pulse_dur;
+						}
+						lastPulseDur = 0;
 					}
 					if (psiCount >=  NRELEMENTS(psiNibbles)) {
 						psiNibbles[0] = psNibbleIndex(firstPulseDur, firstSpaceDur);
@@ -1070,6 +1094,11 @@ bool processBitRkr(uint16_t pulse_dur, uint8_t signal, uint8_t rssi) {
 		}
 	}
 	if ((!rssi) && (pulse_dur == 1)) { // footer, fake pulse, print and reset
+		if (lastPulseDur > 1) { // 2020 force close last
+			psiNibbles[psiCount++] = psNibbleIndex(lastPulseDur, maxSpaceDur);
+			lastPulseDur = 0;
+			maxSpaceDur = 0;
+		}
 		psiNibbles[0] = psNibbleIndex(firstPulseDur, firstSpaceDur);
 		processReady();
 	}

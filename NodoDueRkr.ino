@@ -8,6 +8,18 @@
  * Adapt I/O for LIRC serial and AnalysIR
  * Experiment with dynamic timing based on received signals independant of protocols
  *
+ * 2020
+ *	NodoDueRkr evolved in 3 steps:
+ *		-- NodoDue but record repeating signals:
+ *			RAWSIGNAL_MULTI: Rawsignal can be multiple signals: <count> <timing data> <count> <timing data> etc...
+ *		-- Store more data separating min/max timerange and index
+ *			aka OokTimeRange
+ *			RAW_BUFFER_TIMERANGE_SIZE: min/max timeranges and byteindex
+ *		-- PULSESPACEINDEX:
+ *			One byte stores Pulse index (0...0xE/OxF and Space (0...0xE/OxF)
+ *			this uses pulsespaceindex.h with processBitRkr that was first tried on rfm69-ook-receive-dio2.ino
+ *			Same logic is also used in PulseSpaceIndex.js with rflink and broadlink rmpro as signal source
+ *
  * Original Nodo Due copyrights below
  */
 
@@ -144,6 +156,8 @@ PGM_P const CommandText_tabel[]={
 // settings voor verzenden en ontvangen van IR/RF
 #define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen Ã©Ã©n reeks signalen beÃƒÂ«indigd is
 #define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt Ã©Ã©n RF signaal als beÃƒÂ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
+// 2020 restore 6990
+#define SIGNAL_TIMEOUT_RF      5000 // na deze tijd in uSec. wordt Ã©Ã©n RF signaal als beÃƒÂ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
 #define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt Ã©Ã©n IR signaal als beÃƒÂ«indigd beschouwd.
 #define TX_REPEATS                 5 // aantal herhalingen van een code binnen Ã©Ã©n RF of IR reeks
 #define MIN_PULSE_LENGTH         75 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd. RKR was 100 try 75
@@ -383,11 +397,11 @@ void loop()
 	{ // RKR RawsignalGet measure repetitions
 		int psmStart = 0;
 #ifdef PULSESPACEINDEX
-		psReset(); // needed?
+		psReset(false); // needed?
 #endif
 	    //StaySharpMillis=millis()+SHARP_TIME;
 
-		// RF: *************** kijk of er data start op IR en genereer een event als er een code ontvangen is **********************
+		// IR: *************** kijk of er data start op IR en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar IR, doordat andere input niet wordt opgepikt
 		  {
 		  while((*portInputRegister(IRport)&IRbit)==0)// Kijk if er iets op de IR poort binnenkomt. (Pin=LAAG als signaal in de ether).

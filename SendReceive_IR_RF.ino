@@ -167,27 +167,8 @@ int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut, uint psmIndexS
 	}
 	PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
 	PulseLength=WaitForChangeState(DataPin, !StateSignal, 2*TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
-#ifndef PULSESPACEINDEX
-	// try 2015
-	if((PulseLength > TimeOut) || (PulseSpaceMicros(RawCodeLength-1)) > TimeOut) {
-		if(PulseLength > TimeOut) {
-			TimeOut = PulseLength + 200;
-		}
-		else {
-			TimeOut = (PulseSpaceMicros(RawCodeLength-1) + 200);
-		}
-	}
-	else if ((PulseLength + PulseSpaceMicros(RawCodeLength-1)) < TimeOut) {
-		if ((PulseLength + PulseSpaceMicros(RawCodeLength-1)) < (TimeOut / 2)) {
-			TimeOut = TimeOut / 2;
-		}
-		else {
-			TimeOut = (PulseLength + PulseSpaceMicros(RawCodeLength-1)) + 100;
-		}
-	}
-#else
 	TimeOut *=2; // old Nodo timeout
-#endif
+
 	PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
 	// Original code
 	do { // lees de pulsen in microseconden en plaats deze in een tijdelijke buffer
@@ -200,7 +181,7 @@ int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut, uint psmIndexS
 #ifndef PULSESPACEINDEX
 		PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
 #else
-		PulseSpaceMicrosSet(RawCodeLength++, (PulseLength!=0) ? PulseLength : TimeOut);
+		PulseSpaceMicrosSet(RawCodeLength++, (PulseLength> 75) ? PulseLength : 75);
 #endif
 	} while (RawCodeLength<RAW_BUFFER_SIZE && PulseLength!=0);// Zolang nog niet alle bits ontvangen en er niet vroegtijdig een timeout plaats vindt
 	if ((RawCodeLength-psmIndexStart)>=MIN_RAW_PULSES && RawCodeLength<RAW_BUFFER_SIZE) {
@@ -208,10 +189,10 @@ int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut, uint psmIndexS
 		PrintStartRaw(F("TTimeout "));
 		Serial.println(TimeOut);
 #endif
-		PsCountSetS(psmIndexStart, (RawCodeLength-psmIndexStart)-1, 3); // RKR store signal length
+		PsCountSetS(psmIndexStart, (RawCodeLength-psmIndexStart)-1, pscsPsmCount); // RKR store signal length
 		return (RawCodeLength-psmIndexStart)-1;
 	}
-	PsCountSetS(psmIndexStart, 0, 4);
+	PsCountSetS(psmIndexStart, 0, pscsInterTimeout);
 	return 0;
 }
 

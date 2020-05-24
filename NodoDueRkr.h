@@ -37,30 +37,28 @@ typedef unsigned int uint;
 #define PsCountSet(psmIndexStart, value) PulseSpaceMicrosSet((psmIndexStart), (value))
 #define PsCountSetS(psmIndexStart, value, s) PsCountSet(psmIndexStart, value)
 #else
-// todo use pulsespaceindex.h like rfm69-ook-receive-dio2.ino processBitRkr
-// processBit: processBitRkr(pulse_dur, signal, rssi)
-// processBitRkr(pulse_dur, (i + 1) % 2, 1);
-// fake end: processBitRkr(1, 0, 0);
+/* Use pulsespaceindex.h like rfm69-ook-receive-dio2.ino processBitRkr
+ * processBit: processBitRkr(pulse_dur, signal, rssi)
+ * processBitRkr(pulse_dur, (i + 1) % 2, 1);
+ * Force end: processBitRkr(1, 0, 0);
+ *
+ * Interface to existing NodoDueRkr code is
+ *
+ *	PulseSpaceMicrosSet: next pulse/sparce via processBitRkr
+ * 	PsCountSetS: extra calls in old situation for inter/inra message processing and signalling ready
+ *  PsCountSet: unused for signal generation?
+ */
 #define EDGE_TIMEOUT 60000 // was 10000
 #include "pulsespaceindex.h"
 #define PulseSpaceMicrosSet(i, value)	((void)processBitRkr(value, (i)-1, 1))
 
-typedef enum {pscsData = 0, pscsIntraTime = 1, pscsReady = 2, pscsIntraTimeout = 3, pscsInterTimeout = 4} pscS; //
+typedef enum {pscsData = 0, pscsIntraTime = 1, pscsReady = 2, pscsPsmCount = 3, pscsInterTimeout = 4} pscS; //
 void PsCountSetS(uint psmIndexStart, uint value, pscS s) {
-	if ((s == pscsIntraTimeout) || (s == pscsInterTimeout)) {
-#if 0
-		if (psiCount > 16 && psiCount & 1) {
-			PulseSpaceMicrosSet(1, value);
-			Serial.print(F("PsCountSet fix: "));
-			psiPrintComma(value, 'V', 1);
-			psiPrintComma(psiCount, 'C', 1);
-			Serial.println();
-		}
-#endif
-		return; // inter message timeout
+	if ((s == pscsPsmCount) || (s == pscsInterTimeout)) {
+		return; // inter message pulse count, not used in PULSESPACEINDEX
 	}
 #if 1
-	if (/*(psiCount & 1) && */s == pscsIntraTime && value > 1) {
+	if (/*(psiCount & 1) && */psmIndexStart > 0 && s == pscsIntraTime && value > 1) {
 		//Serial.println(F("PsCountSet fix"));
 		PulseSpaceMicrosSet(0, value);
 	}
@@ -77,7 +75,8 @@ void PsCountSetS(uint psmIndexStart, uint value, pscS s) {
 		processBitRkr(1, 0, 0);	// terminate signal by 'no rssi'.
 	}
 }
-#define PsCountSet(psmIndexStart, value) PsCountSetS(psmIndexStart, value, 0)
+
+#define PsCountSet(psmIndexStart, value) PsCountSetS(psmIndexStart, value, pscsData)
 
 #define PulseSpaceMicros(i)	(psiNibblePS(psiNibbles,(i)-1))
 #define PsCount(psmIndexStart) (psiCount * 2)
