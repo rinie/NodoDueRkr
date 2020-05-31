@@ -25,29 +25,6 @@
 #define NewKAKUdim_RawSignalLength   148
 #define KAKU_CodeLength    12
 
-ulong AnalyzeRawSignal(uint psmIndexStart)
-  {
-  ulong Code=0L;
-
-  if(PsCount(psmIndexStart)>=RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
-
-	switch (PsCount(psmIndexStart)) {
-	case 66:
-  		Code=RawSignal_2_Nodo(psmIndexStart);
-  		break;
-  	case KAKU_CodeLength*4+2:
-    	Code=RawSignal_2_KAKU(psmIndexStart);
-    	break;
-    case NewKAKU_RawSignalLength:
-    case NewKAKUdim_RawSignalLength:
-      	Code=RawSignal_2_NewKAKU(psmIndexStart);
-      	break;
- 	}
-  if (!Code) { // Geen Nodo, KAKU of NewKAKU code. Genereer uit het onbekende signaal een (vrijwel) unieke 32-bit waarde uit.
-     Code=RawSignal_2_32bit(psmIndexStart, false, false);
-  }
-  return Code;
-  }
 
 /*********************************************************************************************\
 * Deze routine berekent de uit een pulseSpaceMicros een NODO code
@@ -290,3 +267,26 @@ boolean TransmitCode(ulong Event,byte SignalType)
   }
 
 
+ulong AnalyzeRawSignal(uint psmIndexStart)
+  {
+  ulong Code=0L;
+
+  if(PsCount(psmIndexStart)>=RAW_BUFFER_SIZE)return 0L;     // Als het signaal een volle buffer beslaat is het zeer waarschijnlijk ruis.
+
+	switch (PsCount(psmIndexStart)) {
+	case 66:
+  		Code=RawSignal_2_Nodo(psmIndexStart);
+  		break;
+  	case KAKU_CodeLength*4+2:
+    	Code=RawSignal_2_KAKU(psmIndexStart);
+    	break;
+    case NewKAKU_RawSignalLength:
+    case NewKAKUdim_RawSignalLength:
+      	Code=RawSignal_2_NewKAKU(psmIndexStart);
+      	break;
+ 	}
+  if (!Code) { // Geen Nodo, KAKU of NewKAKU code. Genereer uit het onbekende signaal een (vrijwel) unieke 32-bit waarde uit.
+     Code=RawSignal_2_32bit(psmIndexStart, false, false);
+  }
+  return Code;
+  }

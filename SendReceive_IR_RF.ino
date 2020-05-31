@@ -1,4 +1,4 @@
-  /**************************************************************************\
+ /**************************************************************************
     This file is part of Nodo Due, (c) Copyright Paul Tonkes
 
     Nodo Due is free software: you can redistribute it and/or modify
@@ -13,16 +13,15 @@
 
     You should have received a copy of the GNU General Public License
     along with Nodo Due.  If not, see <http://www.gnu.org/licenses/>.
-  \**************************************************************************/
+ **************************************************************************/
 
- /**********************************************************************************************\
+/**********************************************************************************************
  * Opwekken draaggolf van 38Khz voor verzenden IR.
  * Deze code is gesloopt uit de library FrequencyTimer2.h omdat deze library niet meer door de compiler versie 0015 kwam.
  * Tevens volledig uitgekleed.
- \*********************************************************************************************/
+ *********************************************************************************************/
 static uint8_t enabled = 0;
-static void IR38Khz_set()
-  {
+static void IR38Khz_set() {
   uint8_t pre, top;
   ulong period=208; // IR_TransmitCarrier=26 want pulsen van de IR-led op een draaggolf van 38Khz. (1000000/38000=26uSec.) Vervolgens period=IR_TransmitCarrier*clockCyclesPerMicrosecond())/2;  // period =208 bij 38Khz
   pre=1;
@@ -34,17 +33,15 @@ static void IR38Khz_set()
   OCR2A=top;
   TCCR2A=(_BV(WGM21)|(enabled?_BV(COM2A0):0));
   TCCR2B=pre;
-  }
+}
 
-
- /**********************************************************************************************\
+/**********************************************************************************************
  * Deze functie wacht totdat de 433 band vrij is of er een timeout heeft plaats gevonden
  * Window en delay tijd in milliseconden
- \*********************************************************************************************/
-# define WAITFREERF_TIMEOUT             30000 // tijd in ms. waarna het wachten wordt afgebroken als er geen ruimte in de vrije ether komt
+ *********************************************************************************************/
+#define WAITFREERF_TIMEOUT             30000 // tijd in ms. waarna het wachten wordt afgebroken als er geen ruimte in de vrije ether komt
 
-void WaitFreeRF(int Delay, int Window)
-  {
+void WaitFreeRF(int Delay, int Window) {
   ulong Timer, TimeOutTimer;
 
   // eerst de 'dode' wachttijd
@@ -60,22 +57,19 @@ void WaitFreeRF(int Delay, int Window)
     {
     if((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
       {
-      if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, 0))// Als het een duidelijk signaal was
+      if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF))// Als het een duidelijk signaal was
         Timer=millis()+Window; // reset de timer weer.
       }
     digitalWrite(MonitorLedPin,(millis()>>7)&0x01);
     }
-  }
+ }
 
-
- /*********************************************************************************************\
+/*********************************************************************************************
  * Deze routine zendt een RAW code via RF.
  * De inhoud van de buffer pulseSpaceMicros moet de pulstijden bevatten.
  * PsCount(0) het aantal pulsen*2
- \*********************************************************************************************/
-
-void RawSendRF(void)
-  {
+ *********************************************************************************************/
+void RawSendRF(void) {
   int x;
 
   digitalWrite(RF_ReceivePowerPin,LOW);   // Spanning naar de RF ontvanger uit om interferentie met de zender te voorkomen.
@@ -95,18 +89,16 @@ void RawSendRF(void)
     }
   digitalWrite(RF_TransmitPowerPin,LOW); // zet de 433Mhz zender weer uit
   digitalWrite(RF_ReceivePowerPin,HIGH); // Spanning naar de RF ontvanger weer aan.
-  }
+}
 
-
- /*********************************************************************************************\
+/*********************************************************************************************
  * Deze routine zendt een 32-bits code via IR.
  * De inhoud van de buffer pulseSpaceMicros moet de pulstijden bevatten.
  * PsCount(0) het aantal pulsen*2
  * Pulsen worden verzonden op en draaggolf van 38Khz.
- \*********************************************************************************************/
-
+ *********************************************************************************************/
 void RawSendIR(void)
-  {
+{
   int x,y;
 
 
@@ -121,87 +113,94 @@ void RawSendIR(void)
       delayMicroseconds(PulseSpaceMicros(x++));
       }
     }
-  }
+}
 
- /**********************************************************************************************\
+/**********************************************************************************************
  * Wacht totdat de pin verandert naar status state. Geeft de tijd in uSec. terug.
  * Als geen verandering, dan wordt na timeout teruggekeerd met de waarde 0L
- \*********************************************************************************************/
-ulong WaitForChangeState(uint8_t pin, uint8_t state, ulong timeout)
-	{
-        uint8_t bit = digitalPinToBitMask(pin);
-        uint8_t port = digitalPinToPort(pin);
+ *********************************************************************************************/
+ulong WaitForChangeState(uint8_t pin, uint8_t state, ulong timeout) {
+	uint8_t bit = digitalPinToBitMask(pin);
+	uint8_t port = digitalPinToPort(pin);
 	uint8_t stateMask = (state ? bit : 0);
+
 	ulong numloops = 0; // keep initialization out of time critical area
 	ulong maxloops = microsecondsToClockCycles(timeout) / 19;
 
 	// wait for the pulse to stop. One loop takes 19 clock-cycles
-	while((*portInputRegister(port) & bit) == stateMask)
-		if (numloops++ == maxloops)
+	while((*portInputRegister(port) & bit) == stateMask) {
+		if (numloops++ == maxloops) {
 			return 0;//timeout opgetreden
-	return clockCyclesToMicroseconds(numloops * 19 + 16);
+		}
 	}
+	return clockCyclesToMicroseconds(numloops * 19 + 16);
+}
 
-
-
- /**********************************************************************************************\
+/**********************************************************************************************
  * Haal de pulsen en plaats in buffer. Op het moment hier aangekomen is de startbit actief.
  * bij de TSOP1738 is in rust is de uitgang hoog. StateSignal moet LOW zijn
  * bij de 433RX is in rust is de uitgang laag. StateSignal moet HIGH zijn
  *
  * RKR: Added uint psmIndexStart: receive repeated signals in one go
- \*********************************************************************************************/
-
-int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut, uint psmIndexStart) {
-	int RawCodeLength=psmIndexStart+1;
-	ulong PulseLength;
-	if (RawCodeLength>=(RAW_BUFFER_SIZE-4)) {
-		PrintLnStartRaw(F("FetchSignal Overflow 2015"));
+ * 2020: integrate processBitRkr/psiNibbles[psiCount++] = psNibbleIndex(lastPulseDur, pulse_dur);
+ * Logic.
+ * space (no signal) timeout is relevant.
+ * pulse signal may be long (real signal).
+ *********************************************************************************************/
+int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut) {
+	pstime firstPulseDur;
+	pstime firstSpaceDur;
+	pstime maxSpaceDur = 0;
+	if (psiCount + MIN_RAW_PULSES >= NRELEMENTS(psiNibbles)) {
 		return 0;
 	}
+	uint psiCountStart = psiCount++; // save for first Pulse/Space
+	pstime PulseLength;
+	pstime SpaceLength;
+	ulong PulseTimeOut = 2 * TimeOut;
 
-	// support for long preamble
-	PulseLength=WaitForChangeState(DataPin, StateSignal, 2*TimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
-	if (PulseLength<MIN_PULSE_LENGTH) {
-			return 0;
+	// support for long preamble start Pulse
+	PulseLength=WaitForChangeState(DataPin, StateSignal, PulseTimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
+	// Start space
+	SpaceLength=WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
+
+	if (PulseLength < MIN_PULSE_LENGTH || SpaceLength == 0) {
+		return 0;
 	}
-	PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
-	PulseLength=WaitForChangeState(DataPin, !StateSignal, 2*TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
-	TimeOut *=2; // old Nodo timeout
+	firstPulseDur = PulseLength;
+	firstSpaceDur = SpaceLength;
 
-	PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
 	// Original code
 	do { // lees de pulsen in microseconden en plaats deze in een tijdelijke buffer
-		PulseLength=WaitForChangeState(DataPin, StateSignal, TimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
-		if (PulseLength<MIN_PULSE_LENGTH) {
-			return 0;
+		// pulse
+		PulseLength=WaitForChangeState(DataPin, StateSignal, PulseTimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
+		// space
+		SpaceLength=WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
+
+		if (PulseLength < MIN_PULSE_LENGTH || SpaceLength < MIN_SPACE_LENGTH) {
+			break;
 		}
-		PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
-		PulseLength=WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
-#ifndef PULSESPACEINDEX
-		PulseSpaceMicrosSet(RawCodeLength++, PulseLength);
-#else
-		PulseSpaceMicrosSet(RawCodeLength++, (PulseLength> 75) ? PulseLength : 75);
-#endif
-	} while (RawCodeLength<RAW_BUFFER_SIZE && PulseLength!=0);// Zolang nog niet alle bits ontvangen en er niet vroegtijdig een timeout plaats vindt
-	if ((RawCodeLength-psmIndexStart)>=MIN_RAW_PULSES && RawCodeLength<RAW_BUFFER_SIZE) {
-#if 0
-		PrintStartRaw(F("TTimeout "));
-		Serial.println(TimeOut);
-#endif
-		PsCountSetS(psmIndexStart, (RawCodeLength-psmIndexStart)-1, pscsPsmCount); // RKR store signal length
-		return (RawCodeLength-psmIndexStart)-1;
+		if (psiCount >= NRELEMENTS(psiNibbles)) {
+			break;
+		}
+		psiNibbles[psiCount++] = psNibbleIndex(PulseLength, SpaceLength);
 	}
-	PsCountSetS(psmIndexStart, 0, pscsInterTimeout);
+	while (true);// Zolang nog niet alle bits ontvangen en er niet vroegtijdig een timeout plaats vindt
+	// start as last for short first pulse...
+	psiNibbles[psiCountStart] = psNibbleIndex(firstPulseDur, firstSpaceDur);
+
+	uint psmCount = (psiCount - psiCountStart) * 2;
+	if (psmCount>MIN_RAW_PULSES && (psiCount < NRELEMENTS(psiNibbles))) {
+		return psmCount;
+	}
+	//PsCountSetS(psmIndexStart, 0, pscsInterTimeout);
 	return 0;
 }
 
-
-
-/**********************************************************************************************\
-* Deze functie zendt gedurende Window seconden de IR ontvangst direct door naar RF
-* Window tijd in seconden.
-\*********************************************************************************************/
+/**********************************************************************************************
+ * Deze functie zendt gedurende Window seconden de IR ontvangst direct door naar RF
+ * Window tijd in seconden.
+ *********************************************************************************************/
 void CopySignalIR2RF(byte Window)
   {
   ulong Timer=millis()+((ulong)Window)*1000; // reset de timer.
@@ -217,13 +216,13 @@ void CopySignalIR2RF(byte Window)
   digitalWrite(RF_ReceivePowerPin,HIGH); // Spanning naar de RF ontvanger weer aan.
   }
 
-/**********************************************************************************************\
-* Deze functie zendt gedurende Window seconden de RF ontvangst direct door naar IR
-* Window tijd in seconden.
-\*********************************************************************************************/
+/**********************************************************************************************
+ * Deze functie zendt gedurende Window seconden de RF ontvangst direct door naar IR
+ * Window tijd in seconden.
+ *********************************************************************************************/
 #define MAXPULSETIME 50 // maximale zendtijd van de IR-LED in mSec. Ter voorkoming van overbelasting
 void CopySignalRF2IR(byte Window)
-  {
+{
   ulong Timer=millis()+((ulong)Window)*1000; // reset de timer.
   ulong PulseTimer;
 
@@ -246,4 +245,4 @@ void CopySignalRF2IR(byte Window)
     }
   digitalWrite(MonitorLedPin,LOW);
   TCCR2A&=~_BV(COM2A0);
-  }
+}

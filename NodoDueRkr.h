@@ -50,10 +50,15 @@ typedef unsigned int uint;
  */
 #define EDGE_TIMEOUT 60000 // was 10000
 #include "pulsespaceindex.h"
+#if 1
+#define PulseSpaceMicrosSet(i, value)
+#else
 #define PulseSpaceMicrosSet(i, value)	((void)processBitRkr(value, (i)-1, 1))
+#endif
 
 typedef enum {pscsData = 0, pscsIntraTime = 1, pscsReady = 2, pscsPsmCount = 3, pscsInterTimeout = 4} pscS; //
 void PsCountSetS(uint psmIndexStart, uint value, pscS s) {
+#if 0
 	if ((s == pscsPsmCount) || (s == pscsInterTimeout)) {
 		return; // inter message pulse count, not used in PULSESPACEINDEX
 	}
@@ -63,6 +68,7 @@ void PsCountSetS(uint psmIndexStart, uint value, pscS s) {
 		PulseSpaceMicrosSet(0, value);
 	}
 #endif
+#if 0
 	if (psiCount > 2) {
 		Serial.print(F("PsCountSet: "));
 		psiPrintComma(psmIndexStart, 'I', 1);
@@ -71,9 +77,11 @@ void PsCountSetS(uint psmIndexStart, uint value, pscS s) {
 		psiPrintComma(psiCount, 'C', 1);
 		Serial.println();
 	}
+#endif
 	if ((psiCount > 1) && value == 0 && s == pscsReady) {
 		processBitRkr(1, 0, 0);	// terminate signal by 'no rssi'.
 	}
+#endif
 }
 
 #define PsCountSet(psmIndexStart, value) PsCountSetS(psmIndexStart, value, pscsData)

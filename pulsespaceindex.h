@@ -136,19 +136,17 @@ bool fIsRf = true;
 // RKR modifications
 typedef unsigned long ulong; //RKR U N S I G N E D is so verbose
 typedef unsigned int uint;
-
-uint psiCount;
-byte psMinMaxCount = 0;
+typedef uint pstime; // uint max 65535?...
 #define JS_OUTPUT	// prepare easy js import
 #define PSI_OVERFLOW 0x0F
 #define PS_MICRO_ELEMENTS 15
-uint psMicroMin[PS_MICRO_ELEMENTS]; // nibble index, 0x0F is overflow so max 15
-uint psMicroMax[PS_MICRO_ELEMENTS]; // nibble index, 0x0F is overflow so max 15
+pstime psMicroMin[PS_MICRO_ELEMENTS]; // nibble index, 0x0F is overflow so max 15
+pstime psMicroMax[PS_MICRO_ELEMENTS]; // nibble index, 0x0F is overflow so max 15
 #define PS_MICRO_AVG
 #ifdef PS_MICRO_AVG
 #include <limits.h>
-ulong psMicroSum[PS_MICRO_ELEMENTS]; // nibble index, 0x0F is overflow so max 15
-uint psMicroSumCount[PS_MICRO_ELEMENTS];
+pstime psMicroSum[PS_MICRO_ELEMENTS]; // nibble index, 0x0F is overflow so max 15
+pstime psMicroSumCount[PS_MICRO_ELEMENTS];
 #endif
 #define PS_MERGE // 2020 works so use pulsespaceindex.js experience here
 #define PS_MERGE_DEBUG
@@ -157,6 +155,8 @@ uint psMicroSumCount[PS_MICRO_ELEMENTS];
 typedef enum {psixPulse, psixSpace, psixPulseSpace, PSIXNRELEMENTS} psiIx; //
 uint psixCount[PS_MICRO_ELEMENTS][PSIXNRELEMENTS]; // index frequency, makes sense to split Pulse/Space to detect signal type...
 
+byte psMinMaxCount = 0;
+uint psiCount;
 byte psiNibbles[512]; // psiCount pulseIndex << 4 | spaceIndex
 #define NRELEMENTS(a) (sizeof(a) / sizeof(*(a)))
 
@@ -247,19 +247,19 @@ static void psiSortMicroMinMax() {
 		fDoneSome = false;
 		for (byte j = 0; j < psMinMaxCount-1; j++) {
 			if (psMicroMin[j] > psMicroMin[j+1]) {
-				uint psMicroMinTemp = psMicroMin[j];
+				pstime psMicroMinTemp = psMicroMin[j];
 				psMicroMin[j] = psMicroMin[j+1];
 				psMicroMin[j+1] = psMicroMinTemp;
 
-				uint psMicroMaxTemp = psMicroMax[j];
+				pstime psMicroMaxTemp = psMicroMax[j];
 				psMicroMax[j] = psMicroMax[j+1];
 				psMicroMax[j+1] = psMicroMaxTemp;
 #ifdef PS_MICRO_AVG
-				ulong psMicroSumTemp = psMicroSum[j];
+				pstime psMicroSumTemp = psMicroSum[j];
 				psMicroSum[j] = psMicroSum[j+1];
 				psMicroSum[j+1] = psMicroSumTemp;
 
-				uint psMicroSumCountTemp = psMicroSumCount[j];
+				pstime psMicroSumCountTemp = psMicroSumCount[j];
 				psMicroSumCount[j] = psMicroSumCount[j+1];
 				psMicroSumCount[j+1] = psMicroSumCountTemp;
 #endif
@@ -310,8 +310,8 @@ static void psiSortMicroMinMax() {
  */
 static void psiMergeMicroMinMax() {
 	byte psNewIndex[PS_MICRO_ELEMENTS];
-	uint prevMinVal = 0;
-	uint prevMaxVal = 0;
+	pstime prevMinVal = 0;
+	pstime prevMaxVal = 0;
 	byte jPrev = 0;
 	byte mergeCount = 0;
 	uint minPsCount = (psiCount * 2) / 8; // assume max 4 01 timings
@@ -321,7 +321,7 @@ static void psiMergeMicroMinMax() {
 	psNewIndex[0] = 0;
 	for (byte i = 1; i < psMinMaxCount; i++) {
 		byte j = i - mergeCount;
-		uint minDiff = PS_MINDIFF;
+		pstime minDiff = PS_MINDIFF;
 #if 0
 		if (psMicroMin[i] >= (psMicroMax[j-1] + minDiff)
 			&& psMicroMin[i] < 1600
@@ -414,21 +414,23 @@ static void psiPrint() {
 			psxCount[ix] += psixCount[i][ix];
 		}
 	}
+#if 0
 	psiPrintComma(psxCount[psixPulseSpace], '?', 1);
 	psiPrintComma(psxCount[psixPulse], '(', 1);
 	psiPrintComma(psxCount[psixSpace], ',', 1);
-
+#endif
 	// 2 determine per pulse/space/pulse+space what Short/Long timing is. Gap > psiDataLong
 	// Short/Long should occur more frequently than GAPS so top 2 of frequency
-	uint psiDataShort[PSIXNRELEMENTS];
+	pstime psiDataShort[PSIXNRELEMENTS];
 	uint psiCountDataShort[PSIXNRELEMENTS];
 
-	uint psiDataLong[PSIXNRELEMENTS];
+	pstime psiDataLong[PSIXNRELEMENTS];
 	uint psiCountDataLong[PSIXNRELEMENTS];
 
 	uint psiCountData[PSIXNRELEMENTS];
 	uint psiCountDataMin = 16; // min count for data, max count for Gap
 	uint psiCountGapMax;
+#if 0
 
 	for (uint ix = 0; ix < PSIXNRELEMENTS; ix++) {
 		// init DataShort/DataLong with 0 and 1 but for psixPulseSpace with max individual values
@@ -472,7 +474,7 @@ static void psiPrint() {
 		else { // psixPulseSpace max of individual values
 			psiCountData[ix] = max(psiCountData[psixPulse], psiCountData[psixSpace]);
 		}
-#if 1
+#if 0
 		psiPrintComma(psiDataShort[ix], ',', 1);
 		psiPrintComma(psiDataLong[ix], ',', 1);
 		psiPrintComma(psiCountGapMax, '*', 1);
@@ -504,6 +506,7 @@ static void psiPrint() {
 		psiPrintChar(' ');
 	}
 	Serial.print(F("]"));
+#endif
 	Serial.println();
 	uint j = 0;
 
@@ -746,7 +749,7 @@ static void psiPrint() {
 
 #ifdef PS_MICRO_AVG
 #define ROUND_MICRO 30 // like RfLink and Broadlink...
-	Serial.print(F("micro: ["));
+	Serial.print(F("avgMicro: ["));
 	ulong micro = ((psMicroSum[0] / psMicroSumCount[0]) / ROUND_MICRO) * ROUND_MICRO;
 	psiPrintComma(micro , 0, 3, psMicroMax[0]);
 	for (uint i=1; i < psMinMaxCount; i++) {
@@ -1003,7 +1006,10 @@ void psReset(bool fRf = true) {
 
 //#include "analysepacket.h"
 static void processReady() {
-	if (psCount > 48) {
+	if (psiCount > 24) {
+		if (psCount == 0) {
+			psCount = psiCount * 2;
+		}
 		uint32_t now = millis();
 		uint32_t nowm = micros();
 		// terminate recording
@@ -1035,20 +1041,20 @@ static void processReady() {
 	psCount = 0;
 	psReset();
 }
-
+#if 0
 /*
  * processBitRkr
  *
  * Interface to external code for measuring pulse/space lengths
  * calls psNibbleIndex(pulseTime, spaceTime) to compute pulse/space nibble index
  */
-bool processBitRkr(uint16_t pulse_dur, uint8_t signal, uint8_t rssi) {
-	static uint lastPulseDur = 0;
+bool processBitRkr(pstime pulse_dur, uint8_t signal, uint8_t rssi) {
+	static pstime lastPulseDur = 0;
  	//add first pulse/space pair last...
  	// as that can be garbled
-	static uint firstPulseDur = 0;
-	static uint firstSpaceDur = 0;
-	static uint maxSpaceDur = 0;
+	static pstime firstPulseDur = 0;
+	static pstime firstSpaceDur = 0;
+	static pstime maxSpaceDur = 0;
 
 	if (pulse_dur > 1) {
 		if ((pulse_dur > 75) && (pulse_dur < EDGE_TIMEOUT)){
@@ -1104,5 +1110,5 @@ bool processBitRkr(uint16_t pulse_dur, uint8_t signal, uint8_t rssi) {
 	}
 	return false; // return true to skip decoders...
 }
-
+#endif
 #endif // __PULSESPACEINDEX_H__

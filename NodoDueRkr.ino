@@ -157,10 +157,11 @@ PGM_P const CommandText_tabel[]={
 #define ENDSIGNAL_TIME          1500 // Dit is de tijd in milliseconden waarna wordt aangenomen dat het ontvangen Ã©Ã©n reeks signalen beÃƒÂ«indigd is
 #define SIGNAL_TIMEOUT_RF       2600 // na deze tijd in uSec. wordt Ã©Ã©n RF signaal als beÃƒÂ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
 // 2020 restore 6990
-#define SIGNAL_TIMEOUT_RF      5000 // na deze tijd in uSec. wordt Ã©Ã©n RF signaal als beÃƒÂ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
+#define SIGNAL_TIMEOUT_RF      7000 // na deze tijd in uSec. wordt Ã©Ã©n RF signaal als beÃƒÂ«indigd beschouwd. RKR was 5000 but use preamble timing to enlarge...
 #define SIGNAL_TIMEOUT_IR      10000 // na deze tijd in uSec. wordt Ã©Ã©n IR signaal als beÃƒÂ«indigd beschouwd.
 #define TX_REPEATS                 5 // aantal herhalingen van een code binnen Ã©Ã©n RF of IR reeks
 #define MIN_PULSE_LENGTH         75 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd. RKR was 100 try 75
+#define MIN_SPACE_LENGTH         30 // pulsen korter dan deze tijd uSec. worden als stoorpulsen beschouwd. RKR was 100 try 75
 
 #ifdef ANALYSIR
 #define MIN_RAW_PULSES            16 // =8 bits. Minimaal aantal ontvangen bits*2 alvorens cpu tijd wordt besteed aan decodering, etc. Zet zo hoog mogelijk om CPU-tijd te sparen en minder 'onzin' te ontvangen.
@@ -193,7 +194,7 @@ struct Settings
 // timers voor verwerking op intervals
 #define Loop_INTERVAL_1          250  // tijdsinterval in ms. voor achtergrondtaken.
 #define Loop_INTERVAL_2         5000  // tijdsinterval in ms. voor achtergrondtaken.
-ulong StaySharpMillis=millis();
+ulong StaySharpMillis;
 ulong LoopIntervalTimer_1=millis();// millis() maakt dat de intervallen van 1 en 2 niet op zelfde moment vallen => 1 en 2 nu asynchroon
 ulong LoopIntervalTimer_2=0L;
 ulong psStartSignalMillis=millis(); // RKR measure time between signals
@@ -383,38 +384,41 @@ void loop()
 
 //  SerialHold(false); // er mogen weer tekens binnen komen van SERIAL
 
-  // hoofdloop: scannen naar signalen
-  // dit is een tijdkritische loop die wacht tot binnengekomen event op IR, RF, SERIAL, CLOCK, DAYLIGHT, TIMER
-  // als er geen signalen binnenkomen duurt deze hoofdloop +/- 35uSec. snel genoeg om geen signalen te missen.
+  // Main loop: scan for signals
+  // This is a timecritical loop that waits for an incoming event on IR, RF, SERIAL, (nodo old: also CLOCK, DAYLIGHT, TIMER)
+  // Original Nodo loop: no signals:  +/- 35uSec. fast enough to miss none.
+  StaySharpMillis=millis();
   while(true)
     {
-    // SERIAL: *************** kijk of er data klaar staat op de seriÃ«le poort **********************
-      if(Serial.available()>0)
-        {
+    // SERIAL: *************** check for data on serial input **********************
+	if(Serial.available()>0) {
 		ParseCommand();
 	}
 #ifndef NINJA_BLOCK
 	{ // RKR RawsignalGet measure repetitions
-		int psmStart = 0;
-#ifdef PULSESPACEINDEX
 		psReset(false); // needed?
-#endif
-	    //StaySharpMillis=millis()+SHARP_TIME;
-
 		// IR: *************** kijk of er data start op IR en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar IR, doordat andere input niet wordt opgepikt
 		  {
 		  while((*portInputRegister(IRport)&IRbit)==0)// Kijk if er iets op de IR poort binnenkomt. (Pin=LAAG als signaal in de ether).
 			{ulong StartSignalTime = millis();
-			if(FetchSignal(IR_ReceiveDataPin,LOW,SIGNAL_TIMEOUT_IR/2, psmStart))// Als het een duidelijk IR signaal was
+			if(FetchSignal(IR_ReceiveDataPin,LOW,SIGNAL_TIMEOUT_IR/2))// Als het een duidelijk IR signaal was
 			  {
+#if 0
+					Serial.print((fIsRf)? F("RF FetchSignal "): F("IR FetchSignal "));
+					psiPrintChar('*');
+					Serial.print(psiCount);
+					Serial.println();
+#endif
+				  	/*
 				  	if (psmStart == 0) { //inter messages time
 						psStartSignalMillis = StartSignalTime;
 					}
 					psmStart = psmStart + PulseSpaceMicros(psmStart) + 2;
+					*/
 					 // intra message time
-					StartSignalTime -= (StaySharpMillis  - SHARP_TIME*2);
-					PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, pscsIntraTime);
+					StartSignalTime -= (StaySharpMillis - SHARP_TIME*2);
+					//PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, pscsIntraTime);
 
 					StaySharpMillis=millis()+SHARP_TIME*2;
 			}
@@ -423,40 +427,53 @@ void loop()
 			}
 		  }
 		} while(millis()<StaySharpMillis);
-#ifndef PULSESPACEINDEX
-	    PsCountSetS(psmStart, 0, pscsReady); // next count 0
-#endif
+		if (psiCount > 48) {
+			Serial.print((fIsRf)? F("RF processReady "): F("IR processReady "));
+			psiPrintChar('*');
+			Serial.print(psiCount);
+			Serial.println();
+		}
+		psCount = psiCount * 2;
+		processReady();
+
+/*
 	    if (psmStart > 0){
-#ifdef PULSESPACEINDEX
 		    PsCountSetS(psmStart, 0, pscsReady); // next count 0
-#endif
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 			{
 			   PrintPulseSpaceTimings(Content,false); // verwerk binnengekomen event.
 			}
 		}
+*/
 	}
 #endif
 	{ // RKR RawsignalGet measure repetitions
-		int psmStart = 0;
-#ifdef PULSESPACEINDEX
 		psReset(); // needed?
-#endif
+	    //StaySharpMillis=millis()+SHARP_TIME;
 		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
 		  {
 		  while((*portInputRegister(RFport)&RFbit)==RFbit)// Kijk if er iets op de RF poort binnenkomt. (Pin=HOOG als signaal in de ether).
 			{ulong StartSignalTime = millis();
-			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF, psmStart))// Als het een duidelijk RF signaal was
+			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF))// Als het een duidelijk RF signaal was
 			  {
+#if 0
+					Serial.print((fIsRf)? F("RF FetchSignal "): F("IR FetchSignal "));
+					psiPrintChar('*');
+					Serial.print(psiCount);
+					Serial.println();
+#endif
+					// frameCount++
+				  	/*
 				  	if (psmStart == 0) { //inter messages time
 						psStartSignalMillis = StartSignalTime;
 					}
 					psmStart = psmStart + PulseSpaceMicros(psmStart) + 2;
 					 // intra message time
-					StartSignalTime -= (StaySharpMillis  - SHARP_TIME);
-					PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, pscsIntraTime);
+					*/
+					StartSignalTime -= (StaySharpMillis - SHARP_TIME);
+					//PsCountSetS(psmStart-1, (StartSignalTime > 0) ? StartSignalTime : 1, pscsIntraTime);
 
 					StaySharpMillis=millis()+SHARP_TIME;
 			}
@@ -465,19 +482,24 @@ void loop()
 			}
 		  }
 		} while(millis()<StaySharpMillis);
-#ifndef PULSESPACEINDEX
-	    PsCountSetS(psmStart, 0, pscsReady); // next count 0
-#endif
+		if (psiCount > 48) {
+			Serial.print((fIsRf)? F("RF processReady "): F("IR processReady "));
+			psiPrintChar('*');
+			Serial.print(psiCount);
+			Serial.println();
+		}
+		psCount = psiCount * 2;
+		processReady();
+/*
 	    if (psmStart > 0){
-#ifdef PULSESPACEINDEX
 		    PsCountSetS(psmStart, 0, pscsReady); // next count 0
-#endif
 			Content=AnalyzeRawSignal(0); // Bereken uit de tabel met de pulstijden de 32-bit code.
 			if(Content)// als AnalyzeRawSignal een event heeft opgeleverd
 			{
 			   PrintPulseSpaceTimings(Content,true); // verwerk binnengekomen event.
 			}
 		}
+*/
 	}
 #if 0
     // 2: niet tijdkritische processen die periodiek uitgevoerd moeten worden
