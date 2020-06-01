@@ -160,9 +160,9 @@ int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut) {
 	ulong PulseTimeOut = 2 * TimeOut;
 
 	// support for long preamble start Pulse
-	PulseLength=WaitForChangeState(DataPin, StateSignal, PulseTimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
+	PulseLength = WaitForChangeState(DataPin, StateSignal, PulseTimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
 	// Start space
-	SpaceLength=WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
+	SpaceLength = WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
 
 	if (PulseLength < MIN_PULSE_LENGTH || SpaceLength == 0) {
 		return 0;
@@ -173,14 +173,14 @@ int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut) {
 	// Original code
 	do { // lees de pulsen in microseconden en plaats deze in een tijdelijke buffer
 		// pulse
-		PulseLength=WaitForChangeState(DataPin, StateSignal, PulseTimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
+		PulseLength = WaitForChangeState(DataPin, StateSignal, PulseTimeOut); // meet hoe lang signaal LOW (= PULSE van IR signaal)
 		// space
-		SpaceLength=WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
+		SpaceLength = WaitForChangeState(DataPin, !StateSignal, TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
 
-		if (PulseLength < MIN_PULSE_LENGTH || SpaceLength < MIN_SPACE_LENGTH) {
+		if (psiCount >= NRELEMENTS(psiNibbles)) {
 			break;
 		}
-		if (psiCount >= NRELEMENTS(psiNibbles)) {
+		if (PulseLength < MIN_PULSE_LENGTH || SpaceLength < MIN_SPACE_LENGTH) { // last space should be timeout...
 			break;
 		}
 		psiNibbles[psiCount++] = psNibbleIndex(PulseLength, SpaceLength);
@@ -188,6 +188,10 @@ int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut) {
 	while (true);// Zolang nog niet alle bits ontvangen en er niet vroegtijdig een timeout plaats vindt
 	// start as last for short first pulse...
 	psiNibbles[psiCountStart] = psNibbleIndex(firstPulseDur, firstSpaceDur);
+	if ((psiCount < NRELEMENTS(psiNibbles)) && (PulseLength >= MIN_PULSE_LENGTH)) { // last Trailer space
+		SpaceLength = TimeOut + WaitForChangeState(DataPin, !StateSignal, 8 * TimeOut); // meet hoe lang signaal HIGH (= SPACE van IR signaal)
+		psiNibbles[psiCount++] = psNibbleIndex(PulseLength, SpaceLength);
+	}
 
 	uint psmCount = (psiCount - psiCountStart) * 2;
 	if (psmCount>MIN_RAW_PULSES && (psiCount < NRELEMENTS(psiNibbles))) {
