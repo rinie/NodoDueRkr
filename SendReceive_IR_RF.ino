@@ -197,6 +197,7 @@ int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut) {
 	if (psmCount>MIN_RAW_PULSES && (psiCount < NRELEMENTS(psiNibbles))) {
 		return psmCount;
 	}
+	psiCount = psiCountStart;
 	//PsCountSetS(psmIndexStart, 0, pscsInterTimeout);
 	return 0;
 }

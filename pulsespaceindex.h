@@ -336,7 +336,8 @@ static void psiMergeMicroMinMax() {
 #endif
 		psNewIndex[i] = j;
 		if (psMicroMin[i] < (psMicroMax[j-1] + minDiff)
-			&& (psMicroMax[j-1] - psMicroMin[j-1]) < 800
+			&& ((psMicroMax[j-1] - psMicroMin[j-1]) < 2 * minDiff
+			    || (psMicroMin[i] < (psMicroMax[j-1] + minDiff/2)))
 			) {
 #ifdef PS_MERGE_DEBUG
 			// merge i to j-1
@@ -748,7 +749,7 @@ static void psiPrint() {
 	Serial.println(F("],"));
 
 #ifdef PS_MICRO_AVG
-#define ROUND_MICRO 30 // like RfLink and Broadlink...
+#define ROUND_MICRO 30UL // like RfLink and Broadlink...
 	Serial.print(F("avgMicro: ["));
 	ulong micro = ((psMicroSum[0] / psMicroSumCount[0]) / ROUND_MICRO) * ROUND_MICRO;
 	psiPrintComma(micro , 0, 3, psMicroMax[0]);
