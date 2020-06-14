@@ -397,6 +397,7 @@ void loop()
 #ifndef NINJA_BLOCK
 	{ // RKR RawsignalGet measure repetitions
 		psReset(false); // needed?
+		uint psiCountLast = psiCount;
 		// IR: *************** kijk of er data start op IR en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar IR, doordat andere input niet wordt opgepikt
 		  {
@@ -404,11 +405,19 @@ void loop()
 			{ulong StartSignalTime = millis();
 			if(FetchSignal(IR_ReceiveDataPin,LOW,SIGNAL_TIMEOUT_IR/2))// Als het een duidelijk IR signaal was
 			  {
-#if 0
+#if 1
+				if (psiCountLast == 0) {
 					Serial.print((fIsRf)? F("RF FetchSignal "): F("IR FetchSignal "));
 					psiPrintChar('*');
-					Serial.print(psiCount);
+				}
+#ifdef PS_FRAMECOUNT
+				if (psiFrameCount < NRELEMENTS(psiFrameSize)) {
+					psiFrameSize[psiFrameCount++] = psiCount-psiCountLast;
+				}
+#endif
+					Serial.print(psiCount-psiCountLast);
 					Serial.println();
+					psiCountLast = psiCount;
 #endif
 				  	/*
 				  	if (psmStart == 0) { //inter messages time
@@ -428,9 +437,13 @@ void loop()
 		  }
 		} while(millis()<StaySharpMillis);
 		if (psiCount > 48) {
-			Serial.print((fIsRf)? F("RF processReady "): F("IR processReady "));
+			Serial.print(F("IR processReady "));
 			psiPrintChar('*');
 			Serial.print(psiCount);
+#ifdef PS_FRAMECOUNT
+			psiPrintChar('+');
+			Serial.print(psiFrameCount);
+#endif
 			Serial.println();
 		}
 		psCount = psiCount * 2;
@@ -450,6 +463,7 @@ void loop()
 #endif
 	{ // RKR RawsignalGet measure repetitions
 		psReset(); // needed?
+		uint psiCountLast = psiCount;
 	    //StaySharpMillis=millis()+SHARP_TIME;
 		// RF: *************** kijk of er data start op RF en genereer een event als er een code ontvangen is **********************
 		do// met StaySharp wordt focus gezet op luisteren naar RF, doordat andere input niet wordt opgepikt
@@ -458,11 +472,19 @@ void loop()
 			{ulong StartSignalTime = millis();
 			if(FetchSignal(RF_ReceiveDataPin,HIGH,SIGNAL_TIMEOUT_RF))// Als het een duidelijk RF signaal was
 			  {
-#if 0
+#if 1
+				if (psiCountLast == 0) {
 					Serial.print((fIsRf)? F("RF FetchSignal "): F("IR FetchSignal "));
 					psiPrintChar('*');
-					Serial.print(psiCount);
+				}
+#ifdef PS_FRAMECOUNT
+				if (psiFrameCount < NRELEMENTS(psiFrameSize)) {
+					psiFrameSize[psiFrameCount++] = psiCount-psiCountLast;
+				}
+#endif
+					Serial.print(psiCount-psiCountLast);
 					Serial.println();
+					psiCountLast = psiCount;
 #endif
 					// frameCount++
 				  	/*
@@ -483,9 +505,13 @@ void loop()
 		  }
 		} while(millis()<StaySharpMillis);
 		if (psiCount > 48) {
-			Serial.print((fIsRf)? F("RF processReady "): F("IR processReady "));
+			Serial.print(F("RF processReady "));
 			psiPrintChar('*');
 			Serial.print(psiCount);
+#ifdef PS_FRAMECOUNT
+			psiPrintChar('+');
+			Serial.print(psiFrameCount);
+#endif
 			Serial.println();
 		}
 		psCount = psiCount * 2;

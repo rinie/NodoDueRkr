@@ -155,6 +155,7 @@ int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut) {
 		return 0;
 	}
 	uint psiCountStart = psiCount++; // save for first Pulse/Space
+	uint psMinMaxCountStart = psMinMaxCount;
 	pstime PulseLength;
 	pstime SpaceLength;
 	ulong PulseTimeOut = 2 * TimeOut;
@@ -197,7 +198,10 @@ int FetchSignal(byte DataPin, boolean StateSignal, ulong TimeOut) {
 	if (psmCount>MIN_RAW_PULSES && (psiCount < NRELEMENTS(psiNibbles))) {
 		return psmCount;
 	}
+	// todo adjust counts and remove unused indexes...
+	// psNibbleIndexRewind(psiCountStart, psMinMaxCountStart);
 	psiCount = psiCountStart;
+	psMinMaxCount = psMinMaxCountStart;
 	//PsCountSetS(psmIndexStart, 0, pscsInterTimeout);
 	return 0;
 }

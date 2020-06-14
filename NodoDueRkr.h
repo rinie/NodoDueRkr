@@ -48,7 +48,6 @@ typedef unsigned int uint;
  * 	PsCountSetS: extra calls in old situation for inter/inra message processing and signalling ready
  *  PsCountSet: unused for signal generation?
  */
-#define EDGE_TIMEOUT 60000 // was 10000
 #include "pulsespaceindex.h"
 #if 1
 #define PulseSpaceMicrosSet(i, value)

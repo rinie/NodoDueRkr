@@ -136,6 +136,7 @@ bool fIsRf = true;
 // RKR modifications
 typedef unsigned long ulong; //RKR U N S I G N E D is so verbose
 typedef unsigned int uint;
+#define EDGE_TIMEOUT 60000 // was 10000
 typedef uint pstime; // uint max 65535?...
 #define JS_OUTPUT	// prepare easy js import
 #define PSI_OVERFLOW 0x0F
@@ -159,6 +160,11 @@ byte psMinMaxCount = 0;
 uint psiCount;
 byte psiNibbles[512]; // psiCount pulseIndex << 4 | spaceIndex
 #define NRELEMENTS(a) (sizeof(a) / sizeof(*(a)))
+#define PS_FRAMECOUNT
+#ifdef PS_FRAMECOUNT
+uint psiFrameCount;
+uint psiFrameSize[16];
+#endif
 
 #define psiNibblePulse(psiNibbles, i) (((psiNibbles)[(i)] >> 4) & 0x0F)
 #define psiNibbleSpace(psiNibbles, i) (((psiNibbles)[(i)]) & 0x0F)
@@ -356,13 +362,13 @@ static void psiMergeMicroMinMax() {
 			psMicroMax[j-1] = psMicroMax[i];
 #ifdef PS_MICRO_AVG
 			// may overflow so check
-			if (ULONG_MAX - psMicroSum[i] > psMicroSum[j-1]) {
+			if (UINT_MAX - psMicroSum[i] > psMicroSum[j-1]) {
 				psMicroSum[j-1] += psMicroSum[i];
 				psMicroSumCount[j-1] += psMicroSumCount[i];
 			}
 			else { // improve this!
 				psMicroSum[j-1] = psMicroSum[j-1]/psMicroSumCount[j-1] + psMicroSum[i] / psMicroSumCount[i];
-				psMicroSumCount[j-1] = 1;
+				psMicroSumCount[j-1] = 2;
 			}
 #endif
 			// enum {psiPulse, psiSpace, psiPulseSpace, PSINRELEMENTS} psiIx; //
@@ -751,10 +757,10 @@ static void psiPrint() {
 #ifdef PS_MICRO_AVG
 #define ROUND_MICRO 30UL // like RfLink and Broadlink...
 	Serial.print(F("avgMicro: ["));
-	ulong micro = ((psMicroSum[0] / psMicroSumCount[0]) / ROUND_MICRO) * ROUND_MICRO;
+	ulong micro = (((psMicroSum[0] / psMicroSumCount[0]) + ROUND_MICRO/2) / ROUND_MICRO) * ROUND_MICRO;
 	psiPrintComma(micro , 0, 3, psMicroMax[0]);
 	for (uint i=1; i < psMinMaxCount; i++) {
-		micro = ((psMicroSum[i] / psMicroSumCount[i]) / ROUND_MICRO) * ROUND_MICRO;
+		micro = (((psMicroSum[i] / psMicroSumCount[i]) + ROUND_MICRO/2) / ROUND_MICRO) * ROUND_MICRO;
 		psiPrintComma(micro, ',', 3, psMicroMax[i]);
 	}
 	Serial.println(F("],"));
@@ -807,6 +813,16 @@ static void psiPrint() {
 	Serial.print(F("ps: "));
 #endif
 	Serial.println();
+#ifdef PS_FRAMECOUNT
+	uint psiCountEndFrame = 0;
+	uint frame = 0;
+	if (frame < psiFrameCount) {
+		psiCountEndFrame += psiFrameSize[frame++];
+	}
+	else {
+		psiCountEndFrame = psiCount;
+	}
+#endif
 #ifdef JS_OUTPUT
 	Serial.print(F(" '"));
 #endif
@@ -820,7 +836,11 @@ static void psiPrint() {
 		space = ((psiCountData[psixSpace] == 2) && (space <= psiDataShort[psixSpace]))
 			? 0 : ((space <= psiDataLong[psixSpace]) ? 1 : space);
 #endif
+#ifdef PS_FRAMECOUNT
+		if ((i >= psiCountEndFrame) || (pulse > psiDataLong[psixPulse]) && ((j > 16))) { // sync pulse
+#else
 		if ((pulse > psiDataLong[psixPulse]) && ((j > 16))) { // sync pulse
+#endif
 #ifndef JS_OUTPUT
 			Serial.println();
 #else
@@ -828,6 +848,14 @@ static void psiPrint() {
 			Serial.print(F("+'"));
 #endif
 			j = 0;
+#ifdef PS_FRAMECOUNT
+			if (frame < psiFrameCount) {
+				psiCountEndFrame += psiFrameSize[frame++];
+			}
+			else {
+				psiCountEndFrame = psiCount;
+			}
+#endif
 		}
 #if 0	// js disable smart data guess
 		if (pulse > psiDataLong[psixPulse]) {
@@ -995,6 +1023,9 @@ void psReset(bool fRf = true) {
 	psMinMaxCount = 0;
 	psiCount = 0;
 	fIsRf = fRf;
+#ifdef PS_FRAMECOUNT
+	psiFrameCount = 0;
+#endif
 }
 
 #if 1 // Rinie get to know code
